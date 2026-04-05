@@ -10,7 +10,7 @@ import AgendamentosPane from '../components/AgendamentosPane'
 import ClientesPane from '../components/ClientesPane'
 import ConfiguracoesPane from '../components/ConfiguracoesPane'
 
-const API = '/api'
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:3001/api';
 
 /* ── helpers ─────────────────────────────────────────────── */
 function authHeaders() {
@@ -648,7 +648,7 @@ function ServicoModal({ modo, servico, onClose, onSaved }) {
     if (!form.nome.trim() || !form.preco) { setError('Nome e preço são obrigatórios.'); return }
     setSaving(true); setError('')
     try {
-      const url = modo === 'criar' ? '/api/servicos' : `/api/servicos/${servico.id}`
+      const url = modo === 'criar' ? `${API}/servicos` : `${API}/servicos/${servico.id}`
       const method = modo === 'criar' ? 'POST' : 'PUT'
       const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ ...form, preco: parseFloat(form.preco), duracao_minutos: parseInt(form.duracao_minutos) }) })
       const data = await res.json()
@@ -767,7 +767,7 @@ function PrecosPane() {
 
   const load = () => {
     setLoading(true)
-    fetch('/api/servicos', { headers: authHeaders() })
+    fetch(`${API}/servicos`, { headers: authHeaders() })
       .then(r => r.json())
       .then(d => { if (d.success) setServicos(d.data) })
       .finally(() => setLoading(false))
@@ -783,7 +783,7 @@ function PrecosPane() {
     if (!window.confirm(`Remover "${s.nome}"? Esta ação pode ser revertida no banco.`)) return
     setDeleting(s.id)
     try {
-      const res = await fetch(`/api/servicos/${s.id}`, { method: 'DELETE', headers: authHeaders() })
+      const res = await fetch(`${API}/servicos/${s.id}`, { method: 'DELETE', headers: authHeaders() })
       const data = await res.json()
       if (data.success) {
         setServicos(prev => prev.filter(x => x.id !== s.id))

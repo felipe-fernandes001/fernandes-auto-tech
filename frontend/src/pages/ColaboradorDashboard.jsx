@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom'
 import logoImg from '../assets/logo-png.png'
 
-const API = '/api'
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:3001/api';
 
 /* ═══════════════════════════════════════════════════════════
    COMPONENTE: NOVO AGENDAMENTO MANUAL
