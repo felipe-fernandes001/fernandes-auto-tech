@@ -1,0 +1,25 @@
+# Dependências
+node_modules/
+
+# Variáveis de Ambiente (Segurança)
+.env
+.env.*
+!.env.example
+
+# Builds e Compilados do Frontend (Vite)
+frontend/dist/
+frontend/build/
+
+# Uploads Locais do Backend (Fotos do checklist)
+backend/uploads/
+
+# Logs do NPM/Yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de Sistema Operacional e IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

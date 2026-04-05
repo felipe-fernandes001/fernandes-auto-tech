@@ -1,0 +1,5 @@
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS saldo_acumulado DECIMAL(10, 2) DEFAULT 0.00;
+
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_final DECIMAL(10, 2);
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS colaborador_id INTEGER REFERENCES colaboradores(id) ON DELETE SET NULL;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS comissao_valor DECIMAL(10, 2);
