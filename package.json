@@ -1,0 +1,6 @@
+{
+  "name": "fernandes-auto-tech-root",
+  "scripts": {
+    "start": "cd backend && node server.js"
+  }
+}
