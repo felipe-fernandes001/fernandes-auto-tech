@@ -50,8 +50,61 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Erro interno no servidor.' });
 });
 
-// ── Inicializa servidor ──────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🚗 Fernandes Auto Tech API rodando na porta ${PORT}`);
-  console.log(`📍 http://localhost:${PORT}/api/health\n`);
+const db = require('./src/db');
+
+// ── Migração Automática de Banco de Dados ────────────────────
+const iniciarBancoDeDados = async () => {
+  try {
+    console.log('🔄 Sincronizando tabelas com o PostgreSQL no Railway...');
+    
+    // 1. Cria a tabela base com a estrutura relacional correta
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS agendamentos (
+        id SERIAL PRIMARY KEY,
+        cliente_id INTEGER,
+        veiculo_id INTEGER,
+        servico_id INTEGER,
+        data_hora TIMESTAMP,
+        status TEXT DEFAULT 'recebido',
+        observacoes TEXT,
+        valor_cobrado DECIMAL(10,2),
+        token_cliente TEXT,
+        busca_veiculo BOOLEAN DEFAULT FALSE,
+        cancelamento_motivo TEXT,
+        colaboradores_ids TEXT,
+        valor_final DECIMAL(10,2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 2. Trava de segurança: Garante as novas colunas caso a tabela já existisse
+    await db.query(`
+      ALTER TABLE agendamentos
+      ADD COLUMN IF NOT EXISTS busca_veiculo BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS cancelamento_motivo TEXT,
+      ADD COLUMN IF NOT EXISTS colaboradores_ids TEXT,
+      ADD COLUMN IF NOT EXISTS valor_final DECIMAL(10,2);
+    `);
+
+    // 3. Atualiza a constraint do status para suportar o fluxo completo
+    await db.query(`ALTER TABLE agendamentos DROP CONSTRAINT IF EXISTS chk_status;`);
+    await db.query(`
+      ALTER TABLE agendamentos ADD CONSTRAINT chk_status CHECK (
+        status IN ('recebido', 'em_lavagem', 'detalhamento', 'finalizado', 'pronto_retirada', 'cancelado')
+      );
+    `);
+
+    console.log('✅ Banco de dados sincronizado e pronto para uso!');
+  } catch (err) {
+    console.error('❌ Erro ao sincronizar o banco de dados:', err.message);
+  }
+};
+
+// ── Inicializa servidor APÓS migração ────────────────────────
+iniciarBancoDeDados().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚗 Fernandes Auto Tech API rodando na porta ${PORT}`);
+    console.log(`📍 http://localhost:${PORT}/api/health\n`);
+  });
 });
