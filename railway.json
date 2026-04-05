@@ -4,8 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node server.js",
-    "restartPolicyType": "ON_FAILURE",
-    "rootDirectory": "backend"
+    "startCommand": "node backend/server.js",
+    "restartPolicyType": "ON_FAILURE"
   }
 }

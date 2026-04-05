@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 
 // ── Middlewares globais ──────────────────────────────────────
 app.use(cors({
-  origin: '*'
+  origin: '*',
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
