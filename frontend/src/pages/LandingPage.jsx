@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import logoImg from '../assets/logo-png.png'
-const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:3001/api';
+const API = (import.meta.env.VITE_API_URL || 'https://fernandes-auto-tech-production.up.railway.app').replace(/\/$/, '') + '/api';
 
 // 4 categorias de veículo com preço diferenciado
 const CATEGORIAS_VEICULO = [
