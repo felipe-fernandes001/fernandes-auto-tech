@@ -108,6 +108,19 @@ const iniciarBancoDeDados = async () => {
       );
     `);
 
+    // Renomeia colunas antigas se ainda existirem (migration segura)
+    await db.query(`DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='servicos' AND column_name='valor') THEN
+        ALTER TABLE servicos RENAME COLUMN valor TO preco;
+      END IF;
+    END $$;`);
+
+    await db.query(`DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='servicos' AND column_name='duracao') THEN
+        ALTER TABLE servicos RENAME COLUMN duracao TO duracao_minutos;
+      END IF;
+    END $$;`);
+
     // Garante colunas caso a tabela já existia com nomes antigos
     await db.query(`ALTER TABLE servicos ADD COLUMN IF NOT EXISTS descricao TEXT DEFAULT '';`);
     await db.query(`ALTER TABLE servicos ADD COLUMN IF NOT EXISTS icone TEXT DEFAULT '🔧';`);
