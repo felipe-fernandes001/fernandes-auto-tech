@@ -11,7 +11,10 @@ const CATEGORIAS_VEICULO = [
 ]
 
 function servicosDaCategoria(services, catId) {
-  return services.filter(s => s.categoria === catId)
+  const categoriaSelecionada = CATEGORIAS_VEICULO.find(c => c.id === catId);
+  return services.filter(s => 
+    s.categoria === categoriaSelecionada?.label || s.categoria === catId
+  );
 }
 
 // ── Navbar ──────────────────────────────────────────────────
