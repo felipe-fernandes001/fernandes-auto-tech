@@ -634,8 +634,8 @@ const ICONS_SERVICO = ['🏍️', '✨', '🚙', '🛻', '🚗', '🧼', '🪣',
 
 function ServicoModal({ modo, servico, onClose, onSaved }) {
   const inicial = servico
-    ? { nome: servico.nome, descricao: servico.descricao || '', preco: servico.preco, duracao_minutos: servico.duracao_minutos || 60, icone: servico.icone || '🚗', categoria: servico.categoria || 'carro' }
-    : { nome: '', descricao: '', preco: '', duracao_minutos: 60, icone: '🚗', categoria: 'carro' }
+    ? { nome: servico.nome, descricao: servico.descricao || '', preco: servico.preco, duracao_minutos: servico.duracao_minutos || 60, icone: servico.icone || '🚗', categoria: servico.categoria || 'hatch' }
+    : { nome: '', descricao: '', preco: '', duracao_minutos: 60, icone: '🚗', categoria: 'hatch' }
 
   const [form, setForm] = useState(inicial)
   const [saving, setSaving] = useState(false)
@@ -699,11 +699,15 @@ function ServicoModal({ modo, servico, onClose, onSaved }) {
           {/* Categoria */}
           <div>
             <label style={labelSt}>Categoria do Veículo *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {[
-                { id: 'moto', label: 'Moto', icon: '🏍️' },
-                { id: 'carro', label: 'Carro', icon: '🚗' },
-                { id: 'suv', label: 'SUV', icon: '🛻' }
+                { id: 'moto', label: 'Motos', icon: '🏍️' },
+                { id: 'hatch', label: 'Hatch', icon: '🚗' },
+                { id: 'sedan', label: 'Sedan', icon: '🚘' },
+                { id: 'suv', label: 'SUVs / Camionetes', icon: '🛻' },
+                { id: 'picape', label: 'Picapes', icon: '🛻' },
+                { id: 'van', label: 'Vans', icon: '🚐' },
+                { id: 'micro_onibus', label: 'Micro-ônibus', icon: '🚌' }
               ].map(cat => (
                 <button key={cat.id} type="button" onClick={() => setForm(f => ({ ...f, categoria: cat.id }))}
                   style={{ flex: 1, padding: '10px', borderRadius: '10px', border: form.categoria === cat.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: form.categoria === cat.id ? 'rgba(59,130,246,.08)' : '#f8fafc', fontSize: '.82rem', fontWeight: 600, color: form.categoria === cat.id ? '#1e40af' : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -761,7 +765,7 @@ function PrecosPane() {
   const [modal, setModal] = useState(null)   // null | { modo: 'criar'|'editar', servico? }
   const [deleting, setDeleting] = useState(null)
   const [toast, setToast] = useState(null)
-  const [activeCat, setActiveCat] = useState('carro')
+  const [activeCat, setActiveCat] = useState('hatch')
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500) }
 
@@ -812,11 +816,15 @@ function PrecosPane() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '4px', borderRadius: '12px', marginBottom: '20px', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '4px', borderRadius: '12px', marginBottom: '20px', width: 'fit-content', flexWrap: 'wrap' }}>
         {[
           { id: 'moto', label: 'Motos', icon: '🏍️' },
-          { id: 'carro', label: 'Carros', icon: '🚗' },
-          { id: 'suv', label: 'SUVs / Camionetes', icon: '🛻' }
+          { id: 'hatch', label: 'Hatch', icon: '🚗' },
+          { id: 'sedan', label: 'Sedan', icon: '🚘' },
+          { id: 'suv', label: 'SUVs / Camionetes', icon: '🛻' },
+          { id: 'picape', label: 'Picapes', icon: '🛻' },
+          { id: 'van', label: 'Vans', icon: '🚐' },
+          { id: 'micro_onibus', label: 'Micro-ônibus', icon: '🚌' }
         ].map(t => (
           <button key={t.id} onClick={() => setActiveCat(t.id)}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '10px', border: 'none', background: activeCat === t.id ? '#fff' : 'transparent', color: activeCat === t.id ? '#0f172a' : '#64748b', fontWeight: activeCat === t.id ? 700 : 500, fontSize: '.82rem', cursor: 'pointer', boxShadow: activeCat === t.id ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .2s' }}>
@@ -852,7 +860,7 @@ function PrecosPane() {
         <div style={{ background: '#fff', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔍</div>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Nenhum serviço nesta categoria</h3>
-          <p style={{ color: '#94a3b8', fontSize: '.85rem', marginBottom: '20px' }}>Você ainda não cadastrou preços para {activeCat === 'moto' ? 'Motos' : activeCat === 'suv' ? 'SUVs' : 'Carros'}.</p>
+          <p style={{ color: '#94a3b8', fontSize: '.85rem', marginBottom: '20px' }}>Você ainda não cadastrou preços para esta categoria.</p>
           <button onClick={() => setModal({ modo: 'criar' })}
             style={{ padding: '10px 24px', borderRadius: '10px', background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '.88rem', cursor: 'pointer' }}>
             ➕ Adicionar Serviço

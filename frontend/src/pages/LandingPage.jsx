@@ -3,12 +3,92 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo-png.png'
 const API = (import.meta.env.VITE_API_URL || 'https://fernandes-auto-tech-production.up.railway.app').replace(/\/$/, '') + '/api';
 
-// 4 categorias de veículo com preço diferenciado
+// Categorias de veículo com preço diferenciado
 const CATEGORIAS_VEICULO = [
-  { id: 'moto', label: 'Moto', icon: '🏍️', desc: 'Motos em geral' },
-  { id: 'carro', label: 'Carro / Sedan', icon: '🚗', desc: 'Gol, Corolla, Strada...' },
-  { id: 'suv', label: 'SUV / Caminhonete', icon: '🛻', desc: 'Hilux, SW4, Ranger...' },
+  { id: 'moto', label: 'Motos', icon: '🏍️', desc: 'Motos em geral' },
+  { id: 'hatch', label: 'Hatch', icon: '🚗', desc: 'Gol, Onix, Argo...' },
+  { id: 'sedan', label: 'Sedan', icon: '🚘', desc: 'Corolla, Civic, Virtus...' },
+  { id: 'suv', label: 'SUVs / Camionetes', icon: '🛻', desc: 'Renegade, Compass...' },
+  { id: 'picape', label: 'Picapes', icon: '🛻', desc: 'Hilux, Ranger, S10...' },
+  { id: 'van', label: 'Vans', icon: '🚐', desc: 'Sprinter, Master...' },
+  { id: 'micro_onibus', label: 'Micro-ônibus', icon: '🚌', desc: 'Volare, Agrale...' }
 ]
+
+// Array de Inteligência / Precificação Dinâmica
+const veiculosPremium = [
+  // 🚗 HATCH (Carro Normal - R$ 50)
+  { modelo: 'Fiat Uno', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Chevrolet Onix', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Hyundai HB20', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'VW Polo', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Fiat Argo', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Fiat Palio', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Chevrolet Celta', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Fiat Idea', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'VW Gol', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Toyota Etios Hatch', categoria: 'Hatch', precoBase: 50 },
+  { modelo: 'Renault Kwid', categoria: 'Hatch', precoBase: 50 },
+
+  // 🚙 SEDAN (Carro Normal - R$ 50)
+  { modelo: 'Honda Civic', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Toyota Corolla', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'VW Virtus', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Chevrolet Onix Plus', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Hyundai HB20S', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Chevrolet Prisma', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'VW Voyage', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Toyota Yaris', categoria: 'Sedan', precoBase: 50 },
+  { modelo: 'Toyota Etios Sedan', categoria: 'Sedan', precoBase: 50 },
+
+  // 🚐 SUV COMPACTO (Porte Médio - R$ 60)
+  { modelo: 'Jeep Compass', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Jeep Renegade', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Hyundai Creta', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Chevrolet Tracker', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Fiat Pulse', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Ford EcoSport', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Toyota Corolla Cross', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Chevrolet Spin', categoria: 'SUV Compacto', precoBase: 60 },
+  { modelo: 'Hyundai Tucson', categoria: 'SUV Compacto', precoBase: 60 },
+  
+  // 🛻 PICAPES PEQUENAS (Porte Médio - R$ 60)
+  { modelo: 'VW Saveiro', categoria: 'Picape Pequena', precoBase: 60 },
+  { modelo: 'Fiat Strada', categoria: 'Picape Pequena', precoBase: 60 },
+  { modelo: 'Chevrolet Montana', categoria: 'Picape Pequena', precoBase: 60 },
+  { modelo: 'Renault Oroch', categoria: 'Picape Pequena', precoBase: 60 },
+
+  // 🚙 SUVs GRANDES (Porte Grande - R$ 70)
+  { modelo: 'Toyota SW4', categoria: 'SUV Grande', precoBase: 70 },
+  { modelo: 'Mitsubishi Pajero', categoria: 'SUV Grande', precoBase: 70 },
+
+  // 🛻 PICAPES MÉDIAS (Porte Grande - R$ 70)
+  { modelo: 'Toyota Hilux', categoria: 'Picape Média', precoBase: 70 },
+  { modelo: 'Chevrolet S10', categoria: 'Picape Média', precoBase: 70 },
+  { modelo: 'Ford Ranger', categoria: 'Picape Média', precoBase: 70 },
+  { modelo: 'VW Amarok', categoria: 'Picape Média', precoBase: 70 },
+  { modelo: 'Mitsubishi L200 Triton', categoria: 'Picape Média', precoBase: 70 },
+  { modelo: 'Fiat Toro', categoria: 'Picape Média', precoBase: 70 },
+
+  // 🚜 PICAPES GIGANTES (Porte Extra Grande - R$ 80)
+  { modelo: 'Chevrolet Silverado', categoria: 'Picape Gigante', precoBase: 80 },
+  { modelo: 'Dodge Ram', categoria: 'Picape Gigante', precoBase: 80 },
+  { modelo: 'Ford F-250', categoria: 'Picape Gigante', precoBase: 80 },
+
+  // 🏍️ MOTOS (R$ 30)
+  { modelo: 'Honda CG Titan 150/160', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda Fan 150/160', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda NXR Bros', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda Biz', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda Pop 100/110i', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda XRE 300', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda CB 500', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Honda PCX', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Yamaha Fazer 150/250', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Yamaha MT-03', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Yamaha XTZ Lander 250', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Yamaha NMAX', categoria: 'Moto', precoBase: 30 },
+  { modelo: 'Yamaha Factor 125/150', categoria: 'Moto', precoBase: 30 }
+];
 
 function servicosDaCategoria(services, catId) {
   const categoriaSelecionada = CATEGORIAS_VEICULO.find(c => c.id === catId);
@@ -134,8 +214,17 @@ function ServicesSection({ services, loading, onAgendarClick }) {
                   <p>Nenhum serviço para esta categoria. Tente outra aba ou fale conosco.</p>
                 </div>
               )
-              : filtrados.map((s, i) => (
-                <div key={s.id} className="glass" onClick={onAgendarClick}
+          : filtrados.map((s, i) => {
+            const handleItemClick = (e) => {
+              e.stopPropagation();
+              if (s.nome.toLowerCase().includes('detalhada')) {
+                window.open('https://wa.me/5599985457391?text=Olá, gostaria de fazer uma avaliação para a Lavagem Detalhada.', '_blank');
+              } else {
+                onAgendarClick();
+              }
+            };
+            return (
+            <div key={s.id} className="glass" onClick={handleItemClick}
                   style={{ padding: '28px', cursor: 'pointer', animation: 'fadeInUp 0.45s ' + (i * 0.07) + 's ease both', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at top right, ' + (i % 3 === 0 ? 'rgba(59,130,246,.09)' : i % 3 === 1 ? 'rgba(139,92,246,.09)' : 'rgba(16,185,129,.07)') + ', transparent 70%)' }} />
                   <div style={{ width: '56px', height: '56px', fontSize: '1.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', flexShrink: 0 }}>
@@ -155,11 +244,11 @@ function ServicesSection({ services, loading, onAgendarClick }) {
                     <span style={{ fontSize: '.78rem', color: 'var(--text-faint)', paddingBottom: '4px' }}>⏱️ {s.duracao_minutos} min</span>
                   </div>
                   <button className="btn btn-primary btn-full" id={'service-agendar-' + s.id}
-                    onClick={e => { e.stopPropagation(); onAgendarClick() }} style={{ marginTop: 'auto' }}>
+                onClick={handleItemClick} style={{ marginTop: 'auto' }}>
                     Agendar Este Serviço →
                   </button>
                 </div>
-              ))
+          )})
           }
         </div>
 
@@ -196,6 +285,10 @@ function BookingModal({ services, onClose, onSuccess }) {
   const [servSel, setServSel] = useState(null)
   const [data, setData] = useState('')
   const [hora, setHora] = useState('')
+  const [modeloCarro, setModeloCarro] = useState('')
+  const [precoBase, setPrecoBase] = useState(50)
+  const [sugestoes, setSugestoes] = useState([])
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false)
   const [nome, setNome] = useState('')
   const [celular, setCelular] = useState('')
   const [sujeira, setSujeira] = useState(false)
@@ -215,6 +308,25 @@ function BookingModal({ services, onClose, onSuccess }) {
       .then(d => { if (d.success) setOcupados(d.data) })
       .finally(() => setLoadingHoras(false))
   }, [data])
+
+  // Lógica de Autocomplete e Precificação Ouro
+  const handleBuscaVeiculo = (e) => {
+    const val = e.target.value;
+    setModeloCarro(val);
+    if (val.trim().length > 0) {
+      setSugestoes(veiculosPremium.filter(v => v.modelo.toLowerCase().includes(val.toLowerCase())));
+    } else {
+      setSugestoes([]);
+    }
+    setPrecoBase(50); // Fallback: Carro Normal (Hatch/Sedan) caso digite um carro fora da lista
+  };
+
+  const selecionarVeiculo = (veiculo) => {
+    setModeloCarro(veiculo.modelo);
+    setPrecoBase(veiculo.precoBase);
+    setSugestoes([]);
+    setMostrarSugestoes(false);
+  };
 
   const isMotoSel = catId === 'moto'
   const pesoSel = (servSel?.nome?.toLowerCase().includes('higienização') || servSel?.nome?.toLowerCase().includes('polimento')) ? 2 : 1
@@ -265,7 +377,7 @@ function BookingModal({ services, onClose, onSuccess }) {
       const res = await fetch(API + '/agendamentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, celular, modelo_carro: catId + ' - ' + (servSel?.nome || ''), servico_id: parseInt(servSel.id), data_hora, observacoes: obsCompleta.trim() }),
+        body: JSON.stringify({ nome, celular, modelo_carro: modeloCarro, servico_id: parseInt(servSel.id), data_hora, observacoes: obsCompleta.trim() }),
       })
       const result = await res.json()
       if (result.success) { 
@@ -434,12 +546,40 @@ function BookingModal({ services, onClose, onSuccess }) {
 
             {/* Resumo */}
             <div style={{ background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.15)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', fontSize: '.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div><span style={{ color: 'var(--text-faint)' }}>Veículo:</span> {CATEGORIAS_VEICULO.find(c => c.id === catId)?.label}</div>
-              <div><span style={{ color: 'var(--text-faint)' }}>Serviço:</span> {servSel?.nome} — <strong style={{ color: '#60a5fa' }}>R$ {parseFloat(servSel?.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span style={{ color: 'var(--text-faint)' }}>Categoria Base:</span> {CATEGORIAS_VEICULO.find(c => c.id === catId)?.label}</div>
+              <div><span style={{ color: 'var(--text-faint)' }}>Serviço:</span> {servSel?.nome} — <strong style={{ color: '#60a5fa' }}>R$ {parseFloat((servSel?.preco || 0) + precoBase).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span style={{ color: 'var(--text-faint)' }}>Data/Hora:</span> {new Date(data + 'T' + hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Campo Search Inteligente com Autocomplete */}
+              <div style={{ position: 'relative' }}>
+                <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '6px' }}>Modelo do Veículo *</label>
+                <input 
+                  value={modeloCarro} 
+                  onChange={handleBuscaVeiculo} 
+                  onFocus={() => setMostrarSugestoes(true)}
+                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 200)}
+                  placeholder="Ex: Silverado, Civic, Hilux..." 
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', fontSize: '.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} 
+                />
+                {mostrarSugestoes && sugestoes.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,.5)' }}>
+                    {sugestoes.map(v => (
+                      <div 
+                        key={v.modelo} 
+                        onMouseDown={(e) => { e.preventDefault(); selecionarVeiculo(v); }}
+                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.04)', fontSize: '.85rem', color: 'var(--text)', transition: 'background .2s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,.1)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <strong style={{ color: '#60a5fa' }}>{v.modelo}</strong> <span style={{ color: 'var(--text-faint)' }}>({v.categoria})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
                 <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', fontSize: '.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
