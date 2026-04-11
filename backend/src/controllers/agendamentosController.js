@@ -1,8 +1,7 @@
 const db = require('../db');
 
 const WHATSAPP_NUMERO = process.env.WHATSAPP_NUMERO || '5511999999999';
-const FRONTEND_URL    = process.env.FRONTEND_URL    || 'http://localhost:5173';
-
+const FRONTEND_URL    = process.env.FRONTEND_URL    || 'https://fernandes-auto-tech.vercel.app'
 const STATUS_LABELS = {
   recebido:        'Recebido',
   em_lavagem:      'Em Lavagem',
