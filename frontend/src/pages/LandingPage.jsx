@@ -90,13 +90,6 @@ const veiculosPremium = [
   { modelo: 'Yamaha Factor 125/150', categoria: 'Moto', precoBase: 30 }
 ];
 
-function servicosDaCategoria(services, catId) {
-  const categoriaSelecionada = CATEGORIAS_VEICULO.find(c => c.id === catId);
-  return services.filter(s => 
-    s.categoria === categoriaSelecionada?.label || s.categoria === catId
-  );
-}
-
 // ── Navbar ──────────────────────────────────────────────────
 function Navbar({ onAgendarClick }) {
   const [scrolled, setScrolled] = useState(false)
@@ -113,7 +106,7 @@ function Navbar({ onAgendarClick }) {
       </div>
       <div className="navbar-links">
         <a href="#servicos" className="btn btn-ghost">Serviços</a>
-        <button className="btn btn-primary" onClick={onAgendarClick} id="navbar-agendar-btn">
+        <button className="btn btn-primary" onClick={() => onAgendarClick()} id="navbar-agendar-btn">
           Agendar Agora
         </button>
       </div>
@@ -142,7 +135,7 @@ function HeroSection({ onAgendarClick }) {
             Tecnologia de ponta encontra cuidado artesanal. Do detalhamento de motos à lavagem premium de SUVs — seu veículo merece o melhor.
           </p>
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary btn-lg" onClick={onAgendarClick} id="hero-agendar-btn">
+            <button className="btn btn-primary btn-lg" onClick={() => onAgendarClick()} id="hero-agendar-btn">
               🗓️ Agendar Agora
             </button>
             <a href="#servicos" className="btn btn-secondary btn-lg" id="hero-servicos-btn">Ver Serviços</a>
@@ -164,10 +157,36 @@ function HeroSection({ onAgendarClick }) {
   )
 }
 
-// ── Serviços com Abas ──────────────────────────────────────
+// ── Serviços Inteligentes (Busca Centralizada) ─────────────
 function ServicesSection({ services, loading, onAgendarClick }) {
-  const [activeTab, setActiveTab] = useState('moto')
-  const filtrados = loading ? [] : servicosDaCategoria(services, activeTab)
+  const [busca, setBusca] = useState('');
+  const [sugestoes, setSugestoes] = useState([]);
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const [veiculoSel, setVeiculoSel] = useState(null);
+
+  const handleBusca = (e) => {
+    const val = e.target.value;
+    setBusca(val);
+    setVeiculoSel(null);
+    if (val.trim().length > 0) {
+      setSugestoes(veiculosPremium.filter(v => v.modelo.toLowerCase().includes(val.toLowerCase())));
+    } else {
+      setSugestoes([]);
+    }
+  };
+
+  const selecionarVeiculo = (v) => {
+    setBusca(v.modelo);
+    setVeiculoSel(v);
+    setSugestoes([]);
+    setMostrarSugestoes(false);
+  };
+
+  const isMoto = veiculoSel?.categoria?.toLowerCase() === 'moto';
+  const filtrados = loading || !veiculoSel ? [] : services.filter(s => {
+    const catS = (s.categoria || '').toLowerCase();
+    return isMoto ? (catS === 'moto' || catS === 'motos') : (catS !== 'moto' && catS !== 'motos');
+  });
 
   return (
     <section className="section" id="servicos">
@@ -279,16 +298,10 @@ function StepDot({ num, label, active, done }) {
   )
 }
 
-function BookingModal({ services, onClose, onSuccess }) {
-  const [step, setStep] = useState(1)  // 1=categoria 2=serviço 3=data/hora 4=dados
-  const [catId, setCatId] = useState(null)
-  const [servSel, setServSel] = useState(null)
+function BookingModal({ veiculo, servico, onClose, onSuccess }) {
+  const [step, setStep] = useState(1)  // 1=data/hora 2=dados
   const [data, setData] = useState('')
   const [hora, setHora] = useState('')
-  const [modeloCarro, setModeloCarro] = useState('')
-  const [precoBase, setPrecoBase] = useState(50)
-  const [sugestoes, setSugestoes] = useState([])
-  const [mostrarSugestoes, setMostrarSugestoes] = useState(false)
   const [nome, setNome] = useState('')
   const [celular, setCelular] = useState('')
   const [sujeira, setSujeira] = useState(false)
@@ -309,27 +322,9 @@ function BookingModal({ services, onClose, onSuccess }) {
       .finally(() => setLoadingHoras(false))
   }, [data])
 
-  // Lógica de Autocomplete e Precificação Ouro
-  const handleBuscaVeiculo = (e) => {
-    const val = e.target.value;
-    setModeloCarro(val);
-    if (val.trim().length > 0) {
-      setSugestoes(veiculosPremium.filter(v => v.modelo.toLowerCase().includes(val.toLowerCase())));
-    } else {
-      setSugestoes([]);
-    }
-    setPrecoBase(50); // Fallback: Carro Normal (Hatch/Sedan) caso digite um carro fora da lista
-  };
-
-  const selecionarVeiculo = (veiculo) => {
-    setModeloCarro(veiculo.modelo);
-    setPrecoBase(veiculo.precoBase);
-    setSugestoes([]);
-    setMostrarSugestoes(false);
-  };
-
-  const isMotoSel = catId === 'moto'
-  const pesoSel = (servSel?.nome?.toLowerCase().includes('higienização') || servSel?.nome?.toLowerCase().includes('polimento')) ? 2 : 1
+  const precoFinal = parseFloat(servico.preco || 0) + parseFloat(veiculo.precoBase || 0);
+  const isMotoSel = veiculo.categoria.toLowerCase() === 'moto';
+  const pesoSel = (servico.nome.toLowerCase().includes('higienização') || servico.nome.toLowerCase().includes('polimento')) ? 2 : 1;
   
   let vagasCarroManha = 0, vagasMotoManha = 0, vagasCarroTarde = 0, vagasMotoTarde = 0
   const exatosOcupados = []
@@ -364,9 +359,6 @@ function BookingModal({ services, onClose, onSuccess }) {
   const submit = async () => {
     // -------------------------------------------------------------------------
     // [FUNÇÃO CRUCIAL: AGENDAMENTO]
-    // Processa os dados do formulário e valida apenas o que é essencial.
-    // O foco principal é a agilidade e menor atrito para o cliente da região de 
-    // São Raimundo das Mangabeiras conseguir agendar com o mínimo de cliques.
     // -------------------------------------------------------------------------
     if (!nome.trim() || !celular.trim()) { setErro('Nome e celular são obrigatórios.'); return }
     if (!data || !hora) { setErro('Selecione data e horário.'); return }
@@ -377,12 +369,11 @@ function BookingModal({ services, onClose, onSuccess }) {
       const res = await fetch(API + '/agendamentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, celular, modelo_carro: modeloCarro, servico_id: parseInt(servSel.id), data_hora, observacoes: obsCompleta.trim() }),
+        body: JSON.stringify({ nome, celular, modelo_carro: veiculo.modelo, servico_id: parseInt(servico.id), data_hora, observacoes: obsCompleta.trim() }),
       })
       const result = await res.json()
       if (result.success) { 
-        const modeloFormatado = CATEGORIAS_VEICULO.find(c => c.id === catId)?.label || 'veículo'
-        onSuccess({ ...result.data, buscarVeiculo, modeloFormatado }) 
+        onSuccess({ ...result.data, buscarVeiculo, modeloFormatado: veiculo.modelo }) 
       }
       else { setErro(result.message || 'Erro ao agendar.') }
     } catch { setErro('Erro de conexão com o servidor.') }
@@ -399,70 +390,20 @@ function BookingModal({ services, onClose, onSuccess }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>🗓️ Agendar Serviço</h3>
-            <p style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Passo {step} de 4</p>
+            <p style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Passo {step} de 2</p>
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
         </div>
 
         {/* Progress steps */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0', marginBottom: '28px', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '2px', background: 'rgba(255,255,255,.08)', zIndex: 0 }} />
-          {['Veículo', 'Serviço', 'Data/Hora', 'Seus Dados'].map((label, i) => (
+          <div style={{ position: 'absolute', top: '16px', left: '25%', right: '25%', height: '2px', background: 'rgba(255,255,255,.08)', zIndex: 0 }} />
+          {['Data/Hora', 'Seus Dados'].map((label, i) => (
             <StepDot key={i} num={i + 1} label={label} active={step === i + 1} done={step > i + 1} />
           ))}
         </div>
 
-        {/* ── STEP 1: Tipo de veículo ── */}
         {step === 1 && (
-          <div style={{ animation: 'fadeIn .2s ease' }}>
-            <p style={{ fontSize: '.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Qual é o seu tipo de veículo?</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-              {CATEGORIAS_VEICULO.map(cat => (
-                <button key={cat.id} onClick={() => { setCatId(cat.id); setStep(2) }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '20px 12px', borderRadius: '14px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', transition: 'all .2s', fontFamily: 'inherit' }}
-                  onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(59,130,246,.5)'; e.currentTarget.style.background = 'rgba(59,130,246,.08)' }}
-                  onMouseLeave={e => { e.currentTarget.style.border = '1px solid var(--border)'; e.currentTarget.style.background = 'rgba(255,255,255,.04)' }}>
-                  <span style={{ fontSize: '2rem' }}>{cat.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '.88rem' }}>{cat.label}</div>
-                    <div style={{ fontSize: '.7rem', color: 'var(--text-faint)', marginTop: '2px' }}>{cat.desc}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: Serviço ── */}
-        {step === 2 && (
-          <div style={{ animation: 'fadeIn .2s ease' }}>
-            <p style={{ fontSize: '.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Qual serviço você quer?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {servicosFiltrados.map(s => {
-                const sel = servSel?.id === s.id
-                return (
-                  <button key={s.id} onClick={() => { setServSel(s); setStep(3) }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderRadius: '12px', border: sel ? '1.5px solid rgba(59,130,246,.6)' : '1px solid var(--border)', background: sel ? 'rgba(59,130,246,.1)' : 'rgba(255,255,255,.04)', cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit', textAlign: 'left' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '.9rem' }}>{s.nome}</div>
-                      {s.descricao && <div style={{ fontSize: '.72rem', color: 'var(--text-faint)', marginTop: '2px' }}>{s.descricao.slice(0, 60)}{s.descricao.length > 60 ? '...' : ''}</div>}
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: '1rem', background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        R$ {parseFloat(s.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </div>
-                      <div style={{ fontSize: '.68rem', color: 'var(--text-faint)' }}>⏱️ {s.duracao_minutos}min</div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <button onClick={back} style={{ marginTop: '16px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.82rem', fontFamily: 'inherit' }}>← Voltar</button>
-          </div>
-        )}
-
-        {/* ── STEP 3: Data + Hora ── */}
-        {step === 3 && (
           <div style={{ animation: 'fadeIn .2s ease' }}>
             <p style={{ fontSize: '.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Quando você prefere?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -530,56 +471,27 @@ function BookingModal({ services, onClose, onSuccess }) {
                 </div>
               )}
               {data && hora && (
-                <button className="btn btn-primary btn-full" onClick={() => setStep(4)} style={{ marginTop: '8px' }}>
+                <button className="btn btn-primary btn-full" onClick={() => setStep(2)} style={{ marginTop: '8px' }}>
                   Confirmar: {new Date(data + 'T' + hora).toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })} às {hora} →
                 </button>
               )}
             </div>
-            <button onClick={back} style={{ marginTop: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.82rem', fontFamily: 'inherit' }}>← Voltar</button>
           </div>
         )}
 
-        {/* ── STEP 4: Dados pessoais + sujeira ── */}
-        {step === 4 && (
+        {/* ── STEP 2: Dados pessoais + sujeira ── */}
+        {step === 2 && (
           <div style={{ animation: 'fadeIn .2s ease' }}>
             <p style={{ fontSize: '.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Quase lá! Seus dados para confirmação:</p>
 
             {/* Resumo */}
             <div style={{ background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.15)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', fontSize: '.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div><span style={{ color: 'var(--text-faint)' }}>Categoria Base:</span> {CATEGORIAS_VEICULO.find(c => c.id === catId)?.label}</div>
-              <div><span style={{ color: 'var(--text-faint)' }}>Serviço:</span> {servSel?.nome} — <strong style={{ color: '#60a5fa' }}>R$ {parseFloat((servSel?.preco || 0) + precoBase).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span style={{ color: 'var(--text-faint)' }}>Veículo:</span> {veiculo.modelo} ({veiculo.categoria})</div>
+              <div><span style={{ color: 'var(--text-faint)' }}>Serviço:</span> {servico.nome} — <strong style={{ color: '#60a5fa' }}>R$ {precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span style={{ color: 'var(--text-faint)' }}>Data/Hora:</span> {new Date(data + 'T' + hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Campo Search Inteligente com Autocomplete */}
-              <div style={{ position: 'relative' }}>
-                <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '6px' }}>Modelo do Veículo *</label>
-                <input 
-                  value={modeloCarro} 
-                  onChange={handleBuscaVeiculo} 
-                  onFocus={() => setMostrarSugestoes(true)}
-                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 200)}
-                  placeholder="Ex: Silverado, Civic, Hilux..." 
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', fontSize: '.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} 
-                />
-                {mostrarSugestoes && sugestoes.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,.5)' }}>
-                    {sugestoes.map(v => (
-                      <div 
-                        key={v.modelo} 
-                        onMouseDown={(e) => { e.preventDefault(); selecionarVeiculo(v); }}
-                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.04)', fontSize: '.85rem', color: 'var(--text)', transition: 'background .2s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,.1)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <strong style={{ color: '#60a5fa' }}>{v.modelo}</strong> <span style={{ color: 'var(--text-faint)' }}>({v.categoria})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <div>
                 <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
                 <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', fontSize: '.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
@@ -690,6 +602,7 @@ export default function LandingPage() {
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [modalData, setModalData] = useState(null)
   const [successData, setSuccessData] = useState(null)
 
   useEffect(() => {
@@ -700,7 +613,14 @@ export default function LandingPage() {
       .finally(() => setLoadingServices(false))
   }, [])
 
-  const handleAgendarClick = () => setShowModal(true)
+  const handleAgendarClick = (veiculo, servico) => {
+    if (veiculo && servico) {
+      setModalData({ veiculo, servico });
+      setShowModal(true);
+    } else {
+      document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   
   // -------------------------------------------------------------------------
   // [FUNÇÃO CRUCIAL: WHATSAPP E BUSCA DE VEÍCULO]
@@ -725,7 +645,7 @@ export default function LandingPage() {
       <HeroSection onAgendarClick={handleAgendarClick} />
       <ServicesSection services={services} loading={loadingServices} onAgendarClick={handleAgendarClick} />
       <Footer />
-      {showModal && <BookingModal services={services} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
+      {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
       {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
     </div>
   )
