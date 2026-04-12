@@ -64,7 +64,11 @@ const getDashboard = async (req, res) => {
        JOIN servicos s ON s.id = a.servico_id
        LEFT JOIN clientes c ON c.id = a.cliente_id
        WHERE ac.colaborador_id = $1
-         AND a.status NOT IN ('cancelado', 'pronto_retirada', 'finalizado')
+         AND a.status != 'cancelado'
+         AND (
+           a.status NOT IN ('finalizado', 'pronto_retirada') 
+           OR (EXTRACT(MONTH FROM a.data_hora) = EXTRACT(MONTH FROM CURRENT_DATE))
+         )
        ORDER BY a.data_hora ASC`,
       [colabId]
     );

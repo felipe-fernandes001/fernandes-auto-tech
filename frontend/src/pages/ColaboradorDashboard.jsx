@@ -514,62 +514,85 @@ export default function ColaboradorDashboard() {
                    </button>
                 </div>
 
-                {data?.servicos?.length === 0 ? (
-                  <div style={{ background: '#1e293b', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', color: '#64748b', border: '1px dashed #334155' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🏖️</div>
-                    <p style={{ fontSize: '1.1rem', margin: 0 }}>Você não tem nenhum carro na sua fila no momento.</p>
-                    <p style={{ fontSize: '.9rem', marginTop: '8px' }}>Vá até a aba "Início" e assuma um serviço no pátio!</p>
-          </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {data?.servicos?.map(s => (
-                      <div key={s.id} style={{ background: '#1e293b', borderRadius: '20px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,.15)', border: '1px solid #334155' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                            <h4 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>🚗 {s.veiculo_modelo} {s.veiculo_placa ? `(${s.veiculo_placa})` : ''}</h4>
-                            <p style={{ margin: 0, fontSize: '.9rem', color: '#94a3b8' }}>{s.servico_nome} - {fmt(s.valor_cobrado || s.servico_preco)}</p>
-                            {s.observacoes && (
-                              <div style={{ marginTop: '12px', width: '100%', fontSize: '.85rem', color: '#fbbf24', background: 'rgba(245,158,11,.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(245,158,11,.3)', lineHeight: 1.5 }}>
-                                <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '4px' }}>⚠️ Atenção / Detalhes:</strong>
-                                <span style={{ whiteSpace: 'pre-wrap' }}>{s.observacoes}</span>
-                              </div>
-                            )}
-                  </div>
-                          <div style={{ padding: '6px 14px', borderRadius: '999px', fontSize: '.8rem', fontWeight: 700, background: s.status === 'recebido' ? 'rgba(100,116,139,.15)' : 'rgba(59,130,246,.15)', color: s.status === 'recebido' ? '#94a3b8' : '#60a5fa', border: `1px solid ${s.status === 'recebido' ? '#334155' : 'rgba(59,130,246,.3)'}` }}>
-                    {s.status.replace('_', ' ').toUpperCase()}
-                  </div>
-                </div>
+                {(() => {
+                  const hojeStr = new Date().toISOString().slice(0, 10);
+                  const pendentes = (data?.servicos || []).filter(s => !['finalizado', 'pronto_retirada', 'cancelado'].includes(s.status));
+                  const servicosHoje = pendentes.filter(s => s.data_hora && s.data_hora.startsWith(hojeStr));
+                  const servicosOutros = pendentes.filter(s => !s.data_hora || !s.data_hora.startsWith(hojeStr));
 
-                        <div style={{ paddingTop: '16px', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  {s.cliente_celular ? (
-                            <a href={wpLnk(s.cliente_celular, s.veiculo_modelo, s.veiculo_placa)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', color: '#22c55e', padding: '10px 16px', borderRadius: '10px', fontSize: '.9rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '1.1rem' }}>💬</span> Avisar Cliente
-                    </a>
-                  ) : <div />}
+                  if (pendentes.length === 0) return (
+                    <div style={{ background: '#1e293b', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', color: '#64748b', border: '1px dashed #334155' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🏖️</div>
+                      <p style={{ fontSize: '1.1rem', margin: 0 }}>Você não tem nenhum carro na sua fila no momento.</p>
+                      <p style={{ fontSize: '.9rem', marginTop: '8px' }}>Vá até a aba "Início" e assuma um serviço no pátio!</p>
+                    </div>
+                  );
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {s.status === 'recebido' && (
-                      <button
-                        onClick={() => handleStatus(s.id, s.status)}
-                        disabled={actionLoading === s.id}
-                                className="mobile-thumb-btn" style={{ padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '.9rem', border: 'none', background: '#3b82f6', color: '#fff', boxShadow: '0 4px 12px rgba(59,130,246,.3)' }}>
-                                {actionLoading === s.id ? 'Aguarde...' : '▶️ Iniciar Lavagem'}
-                      </button>
-                    )}
-                    {s.status === 'em_lavagem' && (
-                      <button
-                        onClick={() => setCheckFocus(s.id)}
-                        disabled={actionLoading === s.id}
-                                className="mobile-thumb-btn" style={{ padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '.9rem', border: 'none', background: '#10b981', color: '#fff', boxShadow: '0 4px 12px rgba(16,185,129,.3)' }}>
-                                {actionLoading === s.id ? 'Aguarde...' : '✅ Finalizar Carro'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  const renderCard = (s) => (
+                    <div key={s.id} style={{ background: '#1e293b', borderRadius: '20px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,.15)', border: '1px solid #334155', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <h4 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>🚗 {s.veiculo_modelo} {s.veiculo_placa ? `(${s.veiculo_placa})` : ''}</h4>
+                          <p style={{ margin: 0, fontSize: '.9rem', color: '#94a3b8' }}>{s.servico_nome} - {fmt(s.valor_cobrado || s.servico_preco)}</p>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '.8rem', color: '#60a5fa', fontWeight: 600 }}>📅 {new Date(s.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                          {s.observacoes && (
+                            <div style={{ marginTop: '12px', width: '100%', fontSize: '.85rem', color: '#fbbf24', background: 'rgba(245,158,11,.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(245,158,11,.3)', lineHeight: 1.5 }}>
+                              <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '4px' }}>⚠️ Atenção / Detalhes:</strong>
+                              <span style={{ whiteSpace: 'pre-wrap' }}>{s.observacoes}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ padding: '6px 14px', borderRadius: '999px', fontSize: '.8rem', fontWeight: 700, background: s.status === 'recebido' ? 'rgba(100,116,139,.15)' : 'rgba(59,130,246,.15)', color: s.status === 'recebido' ? '#94a3b8' : '#60a5fa', border: `1px solid ${s.status === 'recebido' ? '#334155' : 'rgba(59,130,246,.3)'}` }}>
+                          {s.status.replace('_', ' ').toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div style={{ paddingTop: '16px', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        {s.cliente_celular ? (
+                          <a href={wpLnk(s.cliente_celular, s.veiculo_modelo, s.veiculo_placa)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', color: '#22c55e', padding: '10px 16px', borderRadius: '10px', fontSize: '.9rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.1rem' }}>💬</span> Avisar Cliente
+                          </a>
+                        ) : <div />}
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {s.status === 'recebido' && (
+                            <button
+                              onClick={() => handleStatus(s.id, s.status)}
+                              disabled={actionLoading === s.id}
+                              className="mobile-thumb-btn" style={{ padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '.9rem', border: 'none', background: '#3b82f6', color: '#fff', boxShadow: '0 4px 12px rgba(59,130,246,.3)' }}>
+                              {actionLoading === s.id ? 'Aguarde...' : '▶️ Iniciar Lavagem'}
+                            </button>
+                          )}
+                          {s.status === 'em_lavagem' && (
+                            <button
+                              onClick={() => setCheckFocus(s.id)}
+                              disabled={actionLoading === s.id}
+                              className="mobile-thumb-btn" style={{ padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '.9rem', border: 'none', background: '#10b981', color: '#fff', boxShadow: '0 4px 12px rgba(16,185,129,.3)' }}>
+                              {actionLoading === s.id ? 'Aguarde...' : '✅ Finalizar Carro'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {servicosHoje.length > 0 && (
+                        <div>
+                  <h3 style={{ fontSize: '1.1rem', color: '#f8fafc', marginBottom: '16px', borderBottom: '1px solid #334155', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Serviços de Hoje</h3>
+                          {servicosHoje.map(renderCard)}
+                        </div>
+                      )}
+                      {servicosOutros.length > 0 && (
+                        <div>
+                  <h3 style={{ fontSize: '1.1rem', color: '#94a3b8', marginBottom: '16px', borderBottom: '1px solid #334155', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🗓️ Outros Dias (Passados/Futuros)</h3>
+                          {servicosOutros.map(renderCard)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
       </div>
             )}
 
@@ -581,10 +604,70 @@ export default function ColaboradorDashboard() {
                    <p style={{ color: '#94a3b8', margin: 0, fontSize: '.9rem' }}>Acompanhe seus ganhos do mês</p>
                 </div>
 
-                <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15))', border: '1px solid rgba(59,130,246,.3)', borderRadius: '20px', padding: '32px', textAlign: 'center', marginBottom: '24px' }}>
-                   <p style={{ fontSize: '.9rem', color: '#94a3b8', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '.05em' }}>Comissão Atual ({data?.extrato?.porcentagem}%)</p>
-                   <h2 style={{ fontSize: '3rem', fontWeight: 900, margin: 0, color: '#60a5fa', textShadow: '0 4px 20px rgba(59,130,246,.4)' }}>{fmt(data?.extrato?.comissaoMes)}</h2>
-                </div>
+                {(() => {
+                  const servicosFinalizados = (data?.servicos || []).filter(s => ['finalizado', 'pronto_retirada'].includes(s.status));
+                  const taxaComissao = 0.35; // 35% fixado
+                  
+                  const parseValor = (val) => {
+                    if (val === null || val === undefined) return 0;
+                    const parsed = parseFloat(String(val).replace(',', '.'));
+                    return isNaN(parsed) ? 0 : parsed;
+                  };
+
+                  const comissaoCalculada = servicosFinalizados.reduce((acc, s) => {
+                    const parseValor = (val) => {
+                      if (val === null || val === undefined) return 0;
+                      const parsed = parseFloat(String(val).replace(',', '.'));
+                      return isNaN(parsed) ? 0 : parsed;
+                    };
+                    const valor = parseValor(s.valor_total) || parseValor(s.valor_cobrado) || parseValor(s.servico_preco) || parseValor(s.preco) || 0;
+                    return acc + valor;
+                  }, 0) * taxaComissao;
+
+                  return (
+                    <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15))', border: '1px solid rgba(59,130,246,.3)', borderRadius: '20px', padding: '32px', textAlign: 'center', marginBottom: '24px' }}>
+                       <p style={{ fontSize: '.9rem', color: '#94a3b8', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '.05em' }}>Comissão Atual (35%)</p>
+                       <h2 style={{ fontSize: '3rem', fontWeight: 900, margin: 0, color: '#60a5fa', textShadow: '0 4px 20px rgba(59,130,246,.4)' }}>{fmt(comissaoCalculada)}</h2>
+                    </div>
+                    <>
+                      <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15))', border: '1px solid rgba(59,130,246,.3)', borderRadius: '20px', padding: '32px', textAlign: 'center', marginBottom: '24px' }}>
+                         <p style={{ fontSize: '.9rem', color: '#94a3b8', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '.05em' }}>Comissão Atual (35%)</p>
+                         <h2 style={{ fontSize: '3rem', fontWeight: 900, margin: 0, color: '#60a5fa', textShadow: '0 4px 20px rgba(59,130,246,.4)' }}>{fmt(comissaoCalculada)}</h2>
+                      </div>
+
+                      {servicosFinalizados.length > 0 ? (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h3 style={{ fontSize: '1.1rem', color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            🚗 Detalhamento de Serviços
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {servicosFinalizados.map(s => {
+                              const valorBase = parseValor(s.valor_total) || parseValor(s.valor_cobrado) || parseValor(s.servico_preco) || parseValor(s.preco) || 0;
+                              const valorComissao = valorBase * taxaComissao;
+                              return (
+                                <div key={s.id} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                  <div>
+                                    <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '1rem', marginBottom: '4px' }}>{s.veiculo_modelo} {s.veiculo_placa ? `(${s.veiculo_placa})` : ''}</div>
+                                    <div style={{ fontSize: '.85rem', color: '#94a3b8' }}>{s.servico_nome}</div>
+                                    <div style={{ fontSize: '.75rem', color: '#64748b', marginTop: '4px' }}>📅 {new Date(s.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                                  </div>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '.75rem', color: '#94a3b8', marginBottom: '4px' }}>Valor Serviço: {fmt(valorBase)}</div>
+                                    <div style={{ fontWeight: 800, color: '#10b981', fontSize: '1.1rem' }}>+ {fmt(valorComissao)}</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#1e293b', borderRadius: '16px', border: '1px dashed #334155', marginBottom: '24px' }}>
+                          Nenhum serviço gerou comissão neste mês ainda.
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <button onClick={() => setHistModal(true)} style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', padding: '16px', borderRadius: '14px', fontSize: '1rem', fontWeight: 700, color: '#f8fafc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                   📊 Ver Extrato Completo
