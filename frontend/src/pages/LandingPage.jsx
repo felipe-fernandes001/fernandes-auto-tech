@@ -3,17 +3,6 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo-png.png'
 const API = (import.meta.env.VITE_API_URL || 'https://fernandes-auto-tech-production.up.railway.app').replace(/\/$/, '') + '/api';
 
-// Categorias de veículo com preço diferenciado
-const CATEGORIAS_VEICULO = [
-  { id: 'moto', label: 'Motos', icon: '🏍️', desc: 'Motos em geral' },
-  { id: 'hatch', label: 'Hatch', icon: '🚗', desc: 'Gol, Onix, Argo...' },
-  { id: 'sedan', label: 'Sedan', icon: '🚘', desc: 'Corolla, Civic, Virtus...' },
-  { id: 'suv', label: 'SUVs / Camionetes', icon: '🛻', desc: 'Renegade, Compass...' },
-  { id: 'picape', label: 'Picapes', icon: '🛻', desc: 'Hilux, Ranger, S10...' },
-  { id: 'van', label: 'Vans', icon: '🚐', desc: 'Sprinter, Master...' },
-  { id: 'micro_onibus', label: 'Micro-ônibus', icon: '🚌', desc: 'Volare, Agrale...' }
-]
-
 // Array de Inteligência / Precificação Dinâmica
 const veiculosPremium = [
   // 🚗 HATCH (Carro Normal - R$ 50)
@@ -195,59 +184,61 @@ function ServicesSection({ services, loading, onAgendarClick }) {
           <div className="badge badge-purple" style={{ marginBottom: '16px' }}>🔧 Nossos Serviços</div>
           <h2>Tratamento Premium<br /><span className="gradient-text">Para Cada Veículo</span></h2>
           <p className="text-muted" style={{ marginTop: '16px', maxWidth: '480px', margin: '16px auto 0' }}>
-            Selecione a categoria e veja os preços para o seu veículo.
+            Digite o modelo do seu veículo para ver os serviços e valores disponíveis.
           </p>
         </div>
 
-        {/* Tab Bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          {CATEGORIAS_VEICULO.map(cat => {
-            const on = activeTab === cat.id
-            return (
-              <button key={cat.id} id={'tab-' + cat.id} onClick={() => setActiveTab(cat.id)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 20px', minHeight: '48px', minWidth: '140px', borderRadius: '999px', border: on ? '1.5px solid rgba(59,130,246,.6)' : '1px solid rgba(255,255,255,.08)', background: on ? 'linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2))' : 'rgba(255,255,255,.04)', color: on ? '#f1f5f9' : 'var(--text-muted)', fontWeight: on ? 700 : 500, fontSize: '.88rem', cursor: 'pointer', backdropFilter: 'blur(8px)', boxShadow: on ? '0 0 24px rgba(59,130,246,.3)' : 'none', transition: 'all .2s ease', fontFamily: 'inherit' }}>
-                <span style={{ fontSize: '1.1rem' }}>{cat.icon}</span>
-                <div style={{ textAlign: 'left' }}>
-                  <div>{cat.label}</div>
-                  <div style={{ fontSize: '.68rem', color: on ? 'rgba(255,255,255,.6)' : 'var(--text-faint)', fontWeight: 400 }}>{cat.desc}</div>
-                </div>
-              </button>
-            )
-          })}
+        {/* Autocomplete Premium */}
+        <div style={{ maxWidth: '600px', margin: '0 auto 40px', position: 'relative', zIndex: 20 }}>
+          <input
+             value={busca}
+             onChange={handleBusca}
+             onFocus={() => setMostrarSugestoes(true)}
+             onBlur={() => setTimeout(() => setMostrarSugestoes(false), 200)}
+             placeholder="Qual o seu veículo? (Ex: Hilux, Civic, Bros)"
+             style={{ width: '100%', padding: '20px 24px', fontSize: '1.2rem', borderRadius: '16px', border: '2px solid var(--blue)', background: 'var(--bg-secondary)', color: 'var(--text)', outline: 'none', boxShadow: '0 8px 32px rgba(59,130,246,0.15)', boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
+          {mostrarSugestoes && sugestoes.length > 0 && (
+             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', zIndex: 50, boxShadow: '0 12px 40px rgba(0,0,0,.5)' }}>
+                {sugestoes.map(v => (
+                   <div key={v.modelo} onMouseDown={(e) => { e.preventDefault(); selecionarVeiculo(v); }}
+                        style={{ padding: '16px 24px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.04)', fontSize: '1.1rem', transition: 'background .2s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,.1)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <strong style={{ color: '#60a5fa' }}>{v.modelo}</strong> <span style={{ color: 'var(--text-faint)', fontSize: '.9rem' }}>({v.categoria})</span>
+                   </div>
+                ))}
+             </div>
+          )}
         </div>
 
-        {/* Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
-          {loading
-            ? [1, 2, 3].map(i => (
-              <div key={i} className="glass" style={{ padding: '32px', height: '300px' }}>
-                <div className="skeleton" style={{ width: '56px', height: '56px', borderRadius: '14px', marginBottom: '16px' }} />
-                <div className="skeleton" style={{ width: '70%', height: '22px', marginBottom: '12px' }} />
-                <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '8px' }} />
+        {/* Cards Renderizados Dinamicamente */}
+        {veiculoSel && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
+            {filtrados.length === 0 ? (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔍</div>
+                <p>Nenhum serviço encontrado para esta categoria.</p>
               </div>
-            ))
-            : filtrados.length === 0
-              ? (
-                <div key="empty" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔍</div>
-                  <p>Nenhum serviço para esta categoria. Tente outra aba ou fale conosco.</p>
-                </div>
-              )
-          : filtrados.map((s, i) => {
-            const handleItemClick = (e) => {
-              e.stopPropagation();
-              if (s.nome.toLowerCase().includes('detalhada')) {
-                window.open('https://wa.me/5599985457391?text=Olá, gostaria de fazer uma avaliação para a Lavagem Detalhada.', '_blank');
-              } else {
-                onAgendarClick();
-              }
-            };
-            return (
-            <div key={s.id} className="glass" onClick={handleItemClick}
+            ) : filtrados.map((s, i) => {
+              const precoFinal = parseFloat(s.preco || 0) + parseFloat(veiculoSel.precoBase || 0);
+              const isDetalhada = s.nome.toLowerCase().includes('detalhada');
+
+              const handleItemClick = (e) => {
+                e.stopPropagation();
+                if (isDetalhada) {
+                  window.open('https://wa.me/5599985457391?text=Olá, gostaria de fazer uma avaliação para a Lavagem Detalhada no meu ' + veiculoSel.modelo + '.', '_blank');
+                } else {
+                  onAgendarClick(veiculoSel, s);
+                }
+              };
+
+              return (
+                <div key={s.id} className="glass" onClick={handleItemClick}
                   style={{ padding: '28px', cursor: 'pointer', animation: 'fadeInUp 0.45s ' + (i * 0.07) + 's ease both', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at top right, ' + (i % 3 === 0 ? 'rgba(59,130,246,.09)' : i % 3 === 1 ? 'rgba(139,92,246,.09)' : 'rgba(16,185,129,.07)') + ', transparent 70%)' }} />
                   <div style={{ width: '56px', height: '56px', fontSize: '1.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', flexShrink: 0 }}>
-                    {s.icone || CATEGORIAS_VEICULO.find(c => c.id === activeTab)?.icon || '🔧'}
+                    {s.icone || '🔧'}
                   </div>
                   <h3 style={{ marginBottom: '10px', fontSize: '1.08rem' }}>{s.nome}</h3>
                   <p className="text-muted text-sm" style={{ lineHeight: 1.65, marginBottom: '20px', flex: 1 }}>
@@ -255,21 +246,22 @@ function ServicesSection({ services, loading, onAgendarClick }) {
                   </p>
                   <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <div>
-                      <span style={{ fontSize: '.7rem', color: 'var(--text-faint)' }}>valor fixo</span>
+                      <span style={{ fontSize: '.7rem', color: 'var(--text-faint)' }}>valor a partir de</span>
                       <div style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.1 }}>
-                        <span className="gradient-text">R$ {parseFloat(s.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="gradient-text">R$ {precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     <span style={{ fontSize: '.78rem', color: 'var(--text-faint)', paddingBottom: '4px' }}>⏱️ {s.duracao_minutos} min</span>
                   </div>
                   <button className="btn btn-primary btn-full" id={'service-agendar-' + s.id}
-                onClick={handleItemClick} style={{ marginTop: 'auto' }}>
-                    Agendar Este Serviço →
+                    onClick={handleItemClick} style={{ marginTop: 'auto' }}>
+                    {isDetalhada ? 'Fazer Avaliação →' : 'Agendar Este Serviço →'}
                   </button>
                 </div>
-          )})
-          }
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         {!loading && services.length > 0 && (
           <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '.8rem', color: 'var(--text-faint)' }}>
@@ -347,8 +339,6 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const tardeLotada = isMotoSel ? (vagasMotoTarde + pesoSel > 3) : (vagasCarroTarde + pesoSel > 5)
   
   const isLateMorning = (h) => ['10:30', '11:00', '11:30', '12:00', '12:30'].includes(h)
-
-  const servicosFiltrados = catId ? servicosDaCategoria(services, catId) : services
 
   const minDate = new Date(); minDate.setMinutes(minDate.getMinutes() + 30)
   const minDateStr = minDate.toISOString().slice(0, 10)
