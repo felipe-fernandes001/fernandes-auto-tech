@@ -400,7 +400,8 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
     setLoading(true); setErro('')
     try {
       const data_hora = data + 'T' + hora + ':00'
-      const addonsNomes = selectedAddons.map(id => addonsList.find(a => a.id === id).label).join(', ');
+      const addonsArr = selectedAddons.map(id => addonsList.find(a => a.id === id).label);
+      const addonsNomes = addonsArr.join(', ');
       const obsAddons = addonsNomes ? `[Acréscimos: ${addonsNomes}] ` : '';
       const obsValorInfo = `[VALOR ACORDADO SITE: R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}] `;
       const obsCompleta = obsValorInfo + obsAddons + (sujeira ? '[SUJEIRA EXTREMA - avaliar acréscimo] ' : '') + (buscarVeiculo ? '[BUSCAR VEÍCULO] ' : '') + obs;
@@ -408,7 +409,16 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
       const res = await fetch(API + '/agendamentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, celular, modelo_carro: veiculo.modelo, servico_id: parseInt(servico.id), data_hora, observacoes: obsCompleta.trim() }),
+        body: JSON.stringify({ 
+          nome, 
+          celular, 
+          modelo_carro: veiculo.modelo, 
+          servico_id: parseInt(servico.id) || 1, 
+          data_hora, 
+          observacoes: obsCompleta.trim(),
+          valor_total: valorTotal,
+          acrescimos: addonsArr
+        }),
       })
       const result = await res.json()
       if (result.success) { 
@@ -704,30 +714,34 @@ export default function LandingPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      <Navbar onAgendarClick={handleAgendarClick} />
-      <HeroSection onAgendarClick={handleAgendarClick} />
-      <ServicesSection services={services} loading={loadingServices} onAgendarClick={handleAgendarClick} />
-      <Footer />
-      {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
-      {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
-      <div className="text-center text-sm text-slate-400 mt-16 pb-6">
-        Desenvolvido por Felipe Fernandes
+    <>
+      <div style={{ minHeight: '100vh' }}>
+        <Navbar onAgendarClick={handleAgendarClick} />
+        <HeroSection onAgendarClick={handleAgendarClick} />
+        <ServicesSection services={services} loading={loadingServices} onAgendarClick={handleAgendarClick} />
+        <Footer />
+        {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
+        {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
+        <div className="text-center text-sm text-slate-400 mt-16 pb-6">
+          Desenvolvido por Felipe Fernandes
+        </div>
       </div>
 
       {/* Botão Flutuante do WhatsApp */}
-      <a 
-        href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços." 
-        target="_blank" 
-        rel="noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg shadow-green-500/30 hover:scale-110 transition-transform cursor-pointer"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        aria-label="Suporte via WhatsApp"
-      >
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
-        </svg>
-      </a>
-    </div>
+      {(!showModal && !successData) && (
+        <a 
+          href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços." 
+          target="_blank" 
+          rel="noreferrer"
+          className="fixed bottom-6 right-6 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg shadow-green-500/30 hover:scale-110 transition-transform cursor-pointer"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Suporte via WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
+          </svg>
+        </a>
+      )}
+    </>
   )
 }
