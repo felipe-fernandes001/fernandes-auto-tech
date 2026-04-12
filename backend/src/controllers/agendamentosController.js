@@ -22,7 +22,7 @@ const criar = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const { nome, celular, modelo_carro, servico_id, data_hora, observacoes, cor, placa, busca_veiculo } = req.body;
+    const { nome, celular, modelo_carro, servico_id, data_hora, observacoes, cor, placa, busca_veiculo, valor_total, acrescimos } = req.body;
 
     // Validações básicas
     if (!nome || !celular || !modelo_carro || !servico_id || !data_hora) {
@@ -64,12 +64,22 @@ const criar = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Serviço não encontrado.' });
     }
 
+    // Lógica de Preço (Fallback para o valor do banco se valor_total não vier)
+    const precoFinal = valor_total !== undefined && valor_total !== null ? parseFloat(valor_total) : parseFloat(servico.rows[0].preco);
+
+    // Lógica de Acréscimos (Hack Seguro)
+    let observacoesFinais = observacoes || '';
+    if (acrescimos && Array.isArray(acrescimos) && acrescimos.length > 0) {
+      const textoAcrescimos = `➕ Acréscimos: ${acrescimos.join(', ')}`;
+      observacoesFinais = observacoesFinais ? `${observacoesFinais}\n${textoAcrescimos}` : textoAcrescimos;
+    }
+
     // 4. Cria agendamento
     const agendamento = await client.query(
       `INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_hora, observacoes, valor_cobrado, busca_veiculo)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, token_cliente, status`,
-      [clienteId, veiculoId, servico_id, data_hora, observacoes || null, servico.rows[0].preco, busca_veiculo || false]
+      [clienteId, veiculoId, servico_id, data_hora, observacoesFinais.trim() || null, precoFinal, busca_veiculo || false]
     );
 
     const { id: agendamentoId, token_cliente } = agendamento.rows[0];
@@ -97,7 +107,7 @@ const criar = async (req, res) => {
       horaStr = new Date(data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
-    const valorStr = parseFloat(servico.rows[0].preco).toFixed(2).replace('.', ',');
+    const valorStr = precoFinal.toFixed(2).replace('.', ',');
 
     let veiculoIcon = '🚘';
     const modeloLower = (modelo_carro || '').toLowerCase();

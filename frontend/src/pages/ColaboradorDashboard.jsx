@@ -432,6 +432,12 @@ export default function ColaboradorDashboard() {
                               <div>
                                 <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px 0' }}>{proximo.veiculo_modelo} {proximo.veiculo_placa ? `(${proximo.veiculo_placa})` : ''}</h3>
                                 <p style={{ color: '#94a3b8', fontSize: '1rem', margin: 0 }}>{proximo.servico_nome}</p>
+                                {proximo.observacoes && (
+                                  <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.3)', borderRadius: '10px', color: '#fbbf24', fontSize: '.9rem', lineHeight: 1.5 }}>
+                                    <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '4px' }}>⚠️ Atenção / Detalhes:</strong>
+                                    <span style={{ whiteSpace: 'pre-wrap' }}>{proximo.observacoes}</span>
+                                  </div>
+                                )}
                               </div>
                               <button onClick={() => assumirServico(proximo.id)} disabled={actionLoading === proximo.id} className="mobile-thumb-btn" style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,.4)', transition: 'all .2s' }}>
                                 {actionLoading === proximo.id ? 'Aguarde...' : '▶️ INICIAR SERVIÇO'}
@@ -522,7 +528,12 @@ export default function ColaboradorDashboard() {
                   <div>
                             <h4 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>🚗 {s.veiculo_modelo} {s.veiculo_placa ? `(${s.veiculo_placa})` : ''}</h4>
                             <p style={{ margin: 0, fontSize: '.9rem', color: '#94a3b8' }}>{s.servico_nome} - {fmt(s.valor_cobrado || s.servico_preco)}</p>
-                            {s.observacoes && <p style={{ margin: '8px 0 0 0', fontSize: '.85rem', color: '#f59e0b', background: 'rgba(245,158,11,.1)', display: 'inline-block', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(245,158,11,.2)' }}>Obs: {s.observacoes}</p>}
+                            {s.observacoes && (
+                              <div style={{ marginTop: '12px', width: '100%', fontSize: '.85rem', color: '#fbbf24', background: 'rgba(245,158,11,.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(245,158,11,.3)', lineHeight: 1.5 }}>
+                                <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '4px' }}>⚠️ Atenção / Detalhes:</strong>
+                                <span style={{ whiteSpace: 'pre-wrap' }}>{s.observacoes}</span>
+                              </div>
+                            )}
                   </div>
                           <div style={{ padding: '6px 14px', borderRadius: '999px', fontSize: '.8rem', fontWeight: 700, background: s.status === 'recebido' ? 'rgba(100,116,139,.15)' : 'rgba(59,130,246,.15)', color: s.status === 'recebido' ? '#94a3b8' : '#60a5fa', border: `1px solid ${s.status === 'recebido' ? '#334155' : 'rgba(59,130,246,.3)'}` }}>
                     {s.status.replace('_', ' ').toUpperCase()}
