@@ -682,6 +682,22 @@ export default function LandingPage() {
           <span className="hidden md:inline font-semibold whitespace-nowrap">Precisa de ajuda?</span>
         </a>
       )}
+
+      {/* Botão Flutuante do WhatsApp (Responsivo e Fixo) */}
+      {(!showModal && !successData) && (
+        <a
+          href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços."
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-6 right-6 z-[9999] bg-[#25D366] text-white flex items-center justify-center rounded-full shadow-[0_10px_25px_-5px_rgba(37,211,102,0.4)] hover:-translate-y-1 hover:shadow-[0_15px_30px_-5px_rgba(37,211,102,0.6)] transition-all duration-300 w-14 h-14 md:w-auto md:h-auto md:px-5 md:py-3 md:gap-2"
+          aria-label="Suporte via WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="md:w-6 md:h-6">
+            <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
+          </svg>
+          <span className="hidden md:inline font-semibold text-[0.95rem]">Precisa de ajuda?</span>
+        </a>
+      )}
     </>
   )
 }
