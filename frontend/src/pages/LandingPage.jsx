@@ -92,20 +92,20 @@ function Navbar({ onAgendarClick, onTrackClick }) {
   return (
     <nav className="navbar" style={{ borderBottomColor: scrolled ? 'rgba(255,255,255,0.1)' : 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px' }}>
       <div className="navbar-logo">
-        <img src={logoImg} alt="Fernandes Auto Tech" style={{ height: 'auto', width: '100px', maxWidth: '120px' }} />
+        <img src={logoImg} alt="Fernandes Auto Tech" className="w-24 md:w-32 h-auto" />
       </div>
-      <div className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="navbar-links flex items-center gap-2">
         {/* Esconde 'Serviços' no celular */}
         <a href="#servicos" className="hidden md:inline-block btn btn-ghost" style={{ fontSize: '0.9rem' }}>Serviços</a>
         
         {/* Botão de rastreio inteligente: 'Status' no celular, completo no PC */}
-        <button className="btn btn-ghost" onClick={onTrackClick} style={{ padding: '8px', fontSize: '0.9rem' }}>
-          <span className="md:hidden">🔎 Status</span>
+        <button className="btn btn-ghost p-2 md:px-4 md:py-2 text-sm md:text-base" onClick={onTrackClick}>
+          <span className="inline md:hidden">🔎 Status</span>
           <span className="hidden md:inline">Acompanhar Serviço</span>
         </button>
         
         {/* Botão Agendar menor no celular */}
-        <button className="btn btn-primary" onClick={() => onAgendarClick()} style={{ padding: '8px 12px', fontSize: '0.9rem' }}>
+        <button className="btn btn-primary px-3 py-2 text-sm md:px-5 md:py-2.5 md:text-base" onClick={() => onAgendarClick()}>
           Agendar
         </button>
       </div>
@@ -677,32 +677,34 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Botão WhatsApp - Forçado no CSS puro */}
-      <a
-        href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços."
-        target="_blank"
-        rel="noreferrer"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 2147483647,
-          backgroundColor: '#25D366',
-          color: 'white',
-          borderRadius: '50px',
-          padding: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
-          textDecoration: 'none'
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-          <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
-        </svg>
-        <span className="hidden md:inline" style={{ fontWeight: '600', fontSize: '1rem' }}>Precisa de ajuda?</span>
-      </a>
+      {/* Botão WhatsApp - Com regra para sumir no Modal */}
+      {(!showModal && !successData) && (
+        <a
+          href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços."
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 2147483647,
+            backgroundColor: '#25D366',
+            color: 'white',
+            borderRadius: '50px',
+            padding: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+            textDecoration: 'none'
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
+          </svg>
+          <span className="hidden md:inline" style={{ fontWeight: '600', fontSize: '1rem' }}>Precisa de ajuda?</span>
+        </a>
+      )}
     </>
   )
 }
