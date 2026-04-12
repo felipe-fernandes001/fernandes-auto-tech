@@ -172,10 +172,21 @@ function ServicesSection({ services, loading, onAgendarClick }) {
   };
 
   const isMoto = veiculoSel?.categoria?.toLowerCase() === 'moto';
-  const filtrados = loading || !veiculoSel ? [] : services.filter(s => {
-    const catS = (s.categoria || '').toLowerCase();
-    return isMoto ? (catS === 'moto' || catS === 'motos') : (catS !== 'moto' && catS !== 'motos');
-  });
+  let filtrados = [];
+  if (!loading && veiculoSel) {
+    if (isMoto) {
+      filtrados = services.filter(s => {
+        const catS = (s.categoria || '').toLowerCase();
+        return catS === 'moto' || catS === 'motos';
+      });
+    } else {
+      // Sobrescrevemos os serviços de Carro fixando os dois pedidos e mantendo a compatibilidade matemática do painel
+      filtrados = [
+        { id: 'simples_carro', nome: 'Lavagem Simples', descricao: 'Lavagem externa com shampoo, secagem e limpeza básica.', preco: 0, duracao_minutos: 60, icone: '🚗' },
+        { id: 'detalhada_carro', nome: 'Lavagem Detalhada', descricao: 'Limpeza profunda interna, retirada de bancos e detalhamento.', preco: 0, duracao_minutos: 240, icone: '✨' }
+      ];
+    }
+  }
 
   return (
     <section className="section" id="servicos">
@@ -227,7 +238,8 @@ function ServicesSection({ services, loading, onAgendarClick }) {
               const handleItemClick = (e) => {
                 e.stopPropagation();
                 if (isDetalhada) {
-                  window.open('https://wa.me/5599985457391?text=Olá, gostaria de fazer uma avaliação para a Lavagem Detalhada no meu ' + veiculoSel.modelo + '.', '_blank');
+                  // ATENÇÃO: Lembre-se de trocar o 'DD' abaixo pelo DDD da sua região!
+                  window.open('https://wa.me/55DD99985457391?text=Olá Felipe! Gostaria de fazer um orçamento para a Lavagem Detalhada com retirada de bancos para o meu veículo.', '_blank');
                 } else {
                   onAgendarClick(veiculoSel, s);
                 }
@@ -246,9 +258,9 @@ function ServicesSection({ services, loading, onAgendarClick }) {
                   </p>
                   <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <div>
-                      <span style={{ fontSize: '.7rem', color: 'var(--text-faint)' }}>valor a partir de</span>
+                      <span style={{ fontSize: '.7rem', color: 'var(--text-faint)' }}>{isDetalhada ? 'valor' : 'valor a partir de'}</span>
                       <div style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.1 }}>
-                        <span className="gradient-text">R$ {precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="gradient-text">{isDetalhada ? 'Sob Consulta' : `R$ ${precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}</span>
                       </div>
                     </div>
                     <span style={{ fontSize: '.78rem', color: 'var(--text-faint)', paddingBottom: '4px' }}>⏱️ {s.duracao_minutos} min</span>
@@ -266,7 +278,7 @@ function ServicesSection({ services, loading, onAgendarClick }) {
         {!loading && services.length > 0 && (
           <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '.8rem', color: 'var(--text-faint)' }}>
             Não encontrou o que procura?{' '}
-            <button onClick={onAgendarClick} style={{ background: 'none', border: 'none', color: 'var(--blue)', cursor: 'pointer', fontWeight: 600, fontSize: '.8rem', fontFamily: 'inherit' }}>Fale conosco →</button>
+            <button onClick={() => window.open('https://wa.me/55DD99981763335', '_blank')} style={{ background: 'none', border: 'none', color: 'var(--blue)', cursor: 'pointer', fontWeight: 600, fontSize: '.8rem', fontFamily: 'inherit' }}>Fale conosco →</button>
           </p>
         )}
       </div>
@@ -630,7 +642,7 @@ function Footer() {
         </div>
         <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           <span className="text-muted text-sm">📍 Avenida Rodoviária, São Raimundo das Mangabeiras - MA (Em frente ao Centro São Francisco)</span>
-          <span className="text-muted text-sm">📱 WhatsApp disponível</span>
+          <a href="https://wa.me/55DD99981763335" target="_blank" rel="noreferrer" className="text-muted text-sm" style={{ textDecoration: 'none' }}>📱 WhatsApp disponível</a>
           <span className="text-muted text-sm">⏰ Seg–Sáb: 8h–18h</span>
         </div>
         <p className="text-faint text-xs">© 2025 Fernandes Auto Tech. Todos os direitos reservados.</p>
