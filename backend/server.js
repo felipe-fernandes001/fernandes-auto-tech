@@ -182,6 +182,25 @@ const iniciarBancoDeDados = async () => {
       console.log(`ℹ️  Tabela servicos já tem ${rows[0].total} registro(s). Seed ignorado.`);
     }
 
+    // 7. Tabela Configurações e Seed de Avaliações
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS configuracoes (
+        chave VARCHAR(50) PRIMARY KEY,
+        valor TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    const defaultReviews = [
+      { id: 1, nome: 'Carlos Mendes', veiculo: 'Toyota Hilux', texto: 'Serviço impecável! A lavagem detalhada deixou minha caminhonete parecendo que acabou de sair da concessionária. Recomendo muito.', estrelas: 5 },
+      { id: 2, nome: 'Ana Paula', veiculo: 'Jeep Compass', texto: 'Atendimento nota 10 e muita agilidade. Gostei bastante do cuidado com os detalhes no painel e bancos de couro.', estrelas: 5 },
+      { id: 3, nome: 'Roberto Silva', veiculo: 'Honda CB 500', texto: 'O trato de motoqueiro é real. Minha moto estava cheia de graxa e barro, e voltou brilhando. Excelentes profissionais!', estrelas: 5 }
+    ];
+    await db.query(`
+      INSERT INTO configuracoes (chave, valor)
+      VALUES ('avaliacoes_site', $1)
+      ON CONFLICT DO NOTHING;
+    `, [JSON.stringify(defaultReviews)]);
+
     console.log('✅ Banco de dados sincronizado e pronto para uso!');
   } catch (err) {
     console.error('❌ Erro ao sincronizar o banco de dados:', err.message);

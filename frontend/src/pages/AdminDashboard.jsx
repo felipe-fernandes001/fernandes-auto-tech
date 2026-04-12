@@ -43,6 +43,7 @@ const NAV_ITEMS = [
   { id: 'clientes', icon: '👥', label: 'Clientes' },
   { id: 'equipe', icon: '🤝', label: 'Equipe' },
   { id: 'precos', icon: '💰', label: 'Configurar Preços' },
+  { id: 'avaliacoes', icon: '⭐', label: 'Avaliações' },
   { id: 'configuracoes', icon: '⚙️', label: 'Configurações' }
 ]
 
@@ -936,6 +937,153 @@ function PrecosPane() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   AVALIAÇÕES PANE — Gerenciar Depoimentos Dinâmicos
+═══════════════════════════════════════════════════════════ */
+function AvaliacoesPane() {
+  const [avaliacoes, setAvaliacoes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500) }
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API}/admin/configuracoes`, { headers: authHeaders() })
+      const d = await res.json()
+      if (d.success && d.data?.avaliacoes_site) {
+        setAvaliacoes(JSON.parse(d.data.avaliacoes_site))
+      }
+    } catch (e) {}
+    setLoading(false)
+  }
+  useEffect(() => { load() }, [])
+
+  const handleSaveAll = async (novas) => {
+    try {
+      const res = await fetch(`${API}/admin/configuracoes`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ chave: 'avaliacoes_site', valor: JSON.stringify(novas) })
+      })
+      if (res.ok) {
+        setAvaliacoes(novas)
+        showToast('Avaliações atualizadas!')
+      }
+    } catch (e) { showToast('Erro ao salvar', 'error') }
+  }
+
+  const handleDelete = (id) => {
+    if (!window.confirm('Excluir esta avaliação?')) return
+    handleSaveAll(avaliacoes.filter(a => a.id !== id))
+  }
+
+  const handleAddOrEdit = (aval) => {
+    let novas = [...avaliacoes]
+    if (aval.id) {
+      novas = novas.map(a => a.id === aval.id ? aval : a)
+    } else {
+      aval.id = Date.now()
+      novas.push(aval)
+    }
+    handleSaveAll(novas)
+    setModal(null)
+  }
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>⭐ Avaliações do Site</h2>
+          <p style={{ color: '#94a3b8', fontSize: '.8rem' }}>Gerencie os depoimentos exibidos na página inicial</p>
+        </div>
+        <button onClick={() => setModal({ modo: 'criar' })}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(59,130,246,.3)' }}>
+          ➕ Nova Avaliação
+        </button>
+      </div>
+
+      {toast && (
+        <div style={{ background: toast.type === 'success' ? '#f0fdf4' : '#fef2f2', border: `1px solid ${toast.type === 'success' ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', color: toast.type === 'success' ? '#166534' : '#991b1b', fontSize: '.875rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {toast.type === 'success' ? '✅' : '❌'} {toast.msg}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Carregando avaliações...</div>
+      ) : avaliacoes.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '12px' }}>⭐</div>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Nenhuma avaliação cadastrada</h3>
+          <p style={{ color: '#94a3b8', fontSize: '.85rem' }}>Adicione a primeira avaliação para exibir no site.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+          {avaliacoes.map(a => (
+            <div key={a.id} style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,.05)', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '.95rem' }}>{a.nome}</div>
+                  <div style={{ fontSize: '.8rem', color: '#64748b' }}>{a.veiculo}</div>
+                </div>
+                <div style={{ color: '#fbbf24', fontSize: '1.1rem' }}>{'★'.repeat(a.estrelas)}</div>
+              </div>
+              <p style={{ fontSize: '.85rem', color: '#475569', lineHeight: 1.5, flex: 1, margin: 0, fontStyle: 'italic' }}>"{a.texto}"</p>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button onClick={() => setModal({ modo: 'editar', aval: a })} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)', color: '#3b82f6', fontWeight: 600, fontSize: '.78rem', cursor: 'pointer' }}>✏️ Editar</button>
+                <button onClick={() => handleDelete(a.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.2)', color: '#ef4444', fontWeight: 600, fontSize: '.78rem', cursor: 'pointer' }}>🗑️ Excluir</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modal && <AvaliacaoModal modo={modal.modo} aval={modal.aval} onClose={() => setModal(null)} onSaved={handleAddOrEdit} />}
+    </div>
+  )
+}
+
+function AvaliacaoModal({ modo, aval, onClose, onSaved }) {
+  const [form, setForm] = useState(aval || { nome: '', veiculo: '', texto: '', estrelas: 5 })
+  const change = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const submit = (e) => {
+    e.preventDefault()
+    onSaved({ ...form, estrelas: parseInt(form.estrelas) })
+  }
+
+  const inputSt = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '.88rem', color: '#0f172a', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }
+  const labelSt = { fontSize: '.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', display: 'block' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '400px', boxShadow: '0 24px 60px rgba(0,0,0,.18)', animation: 'fadeIn .2s ease' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{modo === 'criar' ? '➕ Nova Avaliação' : '✏️ Editar Avaliação'}</h3>
+          <button type="button" onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+        </div>
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div><label style={labelSt}>Nome do Cliente *</label><input style={inputSt} value={form.nome} onChange={change('nome')} required /></div>
+          <div><label style={labelSt}>Veículo *</label><input style={inputSt} value={form.veiculo} onChange={change('veiculo')} placeholder="Ex: Toyota Hilux" required /></div>
+          <div>
+            <label style={labelSt}>Estrelas</label>
+            <select style={inputSt} value={form.estrelas} onChange={change('estrelas')}>
+              {[5,4,3,2,1].map(n => <option key={n} value={n}>{n} Estrelas</option>)}
+            </select>
+          </div>
+          <div><label style={labelSt}>Depoimento *</label><textarea style={{...inputSt, minHeight: '80px', resize: 'vertical'}} value={form.texto} onChange={change('texto')} required /></div>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+            <button type="submit" style={{ flex: 2, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
    DASHBOARD VIEW — Visão Geral (KPIs + Gráfico + Últimos 5)
 ═══════════════════════════════════════════════════════════ */
 function DashboardView({
@@ -1419,6 +1567,12 @@ export default function AdminDashboard() {
             {activeTab === 'precos' && (
               <div style={{ animation: 'fadeIn .3s ease' }}>
                 <PrecosPane />
+              </div>
+            )}
+
+            {activeTab === 'avaliacoes' && (
+              <div style={{ animation: 'fadeIn .3s ease' }}>
+                <AvaliacoesPane />
               </div>
             )}
 

@@ -470,6 +470,58 @@ function SuccessModal({ data, onClose }) {
   )
 }
 
+// ── Seção de Depoimentos ─────────────────────────────────────
+function TestimonialsSection() {
+  const [reviews, setReviews] = useState([
+    { id: 1, nome: 'Carlos Mendes', veiculo: 'Toyota Hilux', texto: 'Serviço impecável! A lavagem detalhada deixou minha caminhonete parecendo que acabou de sair da concessionária. Recomendo muito.', estrelas: 5 },
+    { id: 2, nome: 'Ana Paula', veiculo: 'Jeep Compass', texto: 'Atendimento nota 10 e muita agilidade. Gostei bastante do cuidado com os detalhes no painel e bancos de couro.', estrelas: 5 },
+    { id: 3, nome: 'Roberto Silva', veiculo: 'Honda CB 500', texto: 'O trato de motoqueiro é real. Minha moto estava cheia de graxa e barro, e voltou brilhando. Excelentes profissionais!', estrelas: 5 }
+  ]);
+
+  useEffect(() => {
+    fetch(API + '/public/avaliacoes')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data && d.data.length > 0) {
+          setReviews(d.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (reviews.length === 0) return null;
+
+  return (
+    <section className="section" style={{ paddingTop: '20px', paddingBottom: '60px' }}>
+      <div className="container">
+        <div className="text-center" style={{ marginBottom: '40px' }}>
+          <div className="badge badge-blue" style={{ marginBottom: '16px' }}>⭐ Avaliações</div>
+          <h2>O Que Dizem<br /><span className="gradient-text">Nossos Clientes</span></h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+          {reviews.map((r, i) => (
+            <div key={i} className="glass" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px', animation: `fadeInUp 0.5s ${i * 0.15}s ease both` }}>
+              <div style={{ display: 'flex', gap: '4px', color: '#fbbf24', fontSize: '1.2rem' }}>
+                {'★'.repeat(r.estrelas)}
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', flex: 1, lineHeight: 1.6, fontSize: '.95rem' }}>"{r.texto}"</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: 'auto' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--blue), var(--purple))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                  {r.nome[0]}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text)' }}>{r.nome}</div>
+                  <div style={{ fontSize: '.8rem', color: 'var(--text-faint)' }}>{r.veiculo}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Footer() {
   return (
     <footer style={{ borderTop: '1px solid var(--border)', padding: '40px 0', marginTop: '40px' }}>
@@ -542,6 +594,7 @@ export default function LandingPage() {
         <Navbar onAgendarClick={handleAgendarClick} />
         <HeroSection onAgendarClick={handleAgendarClick} />
         <ServicesSection services={services} loading={loadingServices} onAgendarClick={handleAgendarClick} />
+        <TestimonialsSection />
         <Footer />
         {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
         {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
@@ -550,23 +603,17 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Botão Flutuante do WhatsApp CORRIGIDO E PROTEGIDO AQUI NO FINAL */}
+      {/* Botão Flutuante de Ajuda */}
       {(!showModal && !successData) && (
-        <div className="fixed bottom-6 right-6 z-50" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div className="wp-tooltip">
-            Precisa de ajuda?
-          </div>
+        <div className="fixed bottom-6 right-6 z-50">
           <a 
             href="https://wa.me/5599981763335?text=Olá! Estava navegando no site e fiquei com uma dúvida sobre os serviços." 
             target="_blank" 
             rel="noreferrer"
-            className="btn-whatsapp-pulse bg-green-500 text-white p-4 rounded-full shadow-lg shadow-green-500/30 transition-transform cursor-pointer"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="Suporte via WhatsApp"
+            className="wp-tooltip"
+            aria-label="Precisa de ajuda?"
           >
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.653.864 5.12 2.33 7.155L.68 24l5.066-1.597c1.942 1.307 4.282 2.062 6.785 2.062 6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.565 17.203c-.538 1.496-2.585 1.954-3.566 1.996-1.02.043-2.316-.276-4.66-1.258-2.825-1.182-4.646-4.148-4.786-4.323-.14-.176-1.144-1.528-1.144-2.915 0-1.387.724-2.074.981-2.353.256-.277.562-.347.75-.347.188 0 .375.006.541.015.176.01.41-.065.641.493.243.593.75 1.846.818 1.986.068.14.113.305.023.493-.09.188-.137.305-.276.471-.14.165-.296.357-.42.483-.14.14-.287.294-.124.55.163.257.727 1.173 1.554 1.986.848.835 1.844 1.168 2.102 1.307.257.14.409.117.564-.047.155-.165.666-.774.843-1.04.177-.266.354-.22.586-.165.231.055 1.464.693 1.715.823.25.13.418.195.48.305.061.11.061.642-.477 2.138z"/>
-            </svg>
+            <span style={{ fontSize: '1.2rem' }}>💬</span> Precisa de ajuda?
           </a>
         </div>
       )}

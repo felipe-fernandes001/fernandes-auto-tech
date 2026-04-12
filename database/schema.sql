@@ -94,6 +94,16 @@ CREATE TABLE IF NOT EXISTS historico_status (
 );
 
 -- ============================================================
+-- TABELA: configuracoes
+-- Armazena configurações e dados JSON (como avaliações do site)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS configuracoes (
+    chave       VARCHAR(50) PRIMARY KEY,
+    valor       TEXT,
+    updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
 -- ÍNDICES para performance
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_agendamentos_cliente    ON agendamentos(cliente_id);

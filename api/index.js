@@ -23,6 +23,22 @@ app.use('/api/admin',         require('../backend/src/routes/admin'));
 app.use('/api/colaboradores', require('../backend/src/routes/colaboradores'));
 app.use('/api/colaborador',   require('../backend/src/routes/colaborador'));
 
+// ── Rotas Públicas (Sem Auth) ────────────────────────────────
+const db = require('../backend/src/db');
+
+app.get('/api/public/avaliacoes', async (req, res) => {
+  try {
+    const result = await db.query("SELECT valor FROM configuracoes WHERE chave = 'avaliacoes_site'");
+    if (result.rows.length > 0 && result.rows[0].valor) {
+      res.json({ success: true, data: JSON.parse(result.rows[0].valor) });
+    } else {
+      res.json({ success: true, data: null });
+    }
+  } catch (err) {
+    res.json({ success: false, message: 'Erro ao buscar avaliações' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
