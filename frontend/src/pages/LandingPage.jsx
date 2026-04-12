@@ -301,6 +301,7 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const [obs, setObs] = useState('')
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const [selectedAddons, setSelectedAddons] = useState([])
 
   const [ocupados, setOcupados] = useState([])
   const [loadingHoras, setLoadingHoras] = useState(false)
@@ -317,6 +318,28 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const precoFinal = parseFloat(servico.preco || 0) + parseFloat(veiculo.precoBase || 0);
   const isMotoSel = veiculo.categoria.toLowerCase() === 'moto';
   const pesoSel = (servico.nome.toLowerCase().includes('higienização') || servico.nome.toLowerCase().includes('polimento')) ? 2 : 1;
+
+  // Logic UPSell
+  const toggleAddon = (id) => {
+    setSelectedAddons(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const addonsList = isMotoSel
+    ? [
+        { id: 'cera_moto', label: '✨ Cera', price: 10 },
+        { id: 'jato_moto', label: '⚙️ Jato de Areia (Limpeza profunda do motor)', price: 10 }
+      ]
+    : [
+        { id: 'baixo', label: '💧 Lavagem por baixo', price: 10 },
+        { id: 'motor', label: '⚙️ Lavagem do Motor', price: 10 },
+        { id: 'cera', label: '✨ Cera Polidora', price: 10 }
+      ];
+
+  const valorAcrescimos = isMotoSel
+    ? selectedAddons.length * 10
+    : (selectedAddons.length === 3 ? 20 : selectedAddons.length * 10);
+
+  const valorTotal = precoFinal + valorAcrescimos;
   
   let vagasCarroManha = 0, vagasMotoManha = 0, vagasCarroTarde = 0, vagasMotoTarde = 0
   const exatosOcupados = []
@@ -355,7 +378,11 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
     setLoading(true); setErro('')
     try {
       const data_hora = data + 'T' + hora + ':00'
-      const obsCompleta = (sujeira ? '[SUJEIRA EXTREMA - avaliar acréscimo] ' : '') + (buscarVeiculo ? '[BUSCAR VEÍCULO] ' : '') + obs
+      const addonsNomes = selectedAddons.map(id => addonsList.find(a => a.id === id).label).join(', ');
+      const obsAddons = addonsNomes ? `[Acréscimos: ${addonsNomes}] ` : '';
+      const obsValorInfo = `[VALOR ACORDADO SITE: R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}] `;
+      const obsCompleta = obsValorInfo + obsAddons + (sujeira ? '[SUJEIRA EXTREMA - avaliar acréscimo] ' : '') + (buscarVeiculo ? '[BUSCAR VEÍCULO] ' : '') + obs;
+
       const res = await fetch(API + '/agendamentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -477,8 +504,33 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
             {/* Resumo */}
             <div style={{ background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.15)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', fontSize: '.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div><span style={{ color: 'var(--text-faint)' }}>Veículo:</span> {veiculo.modelo} ({veiculo.categoria})</div>
-              <div><span style={{ color: 'var(--text-faint)' }}>Serviço:</span> {servico.nome} — <strong style={{ color: '#60a5fa' }}>R$ {precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span style={{ color: 'var(--text-faint)' }}>Serviço Base:</span> {servico.nome} — <strong style={{ color: '#60a5fa' }}>R$ {precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span style={{ color: 'var(--text-faint)' }}>Data/Hora:</span> {new Date(data + 'T' + hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+            </div>
+
+            {/* Acréscimos (Upsell) */}
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '.85rem', fontWeight: 700, color: '#fbbf24', marginBottom: '10px' }}>
+                {isMotoSel 
+                  ? '🔥 Trato de Motoqueiro: Garanta o brilho máximo e um motor parecendo zero!' 
+                  : '🌟 Combo VIP: Deixe seu carro impecável por inteiro! Selecione os 3 acréscimos e pague apenas 2.'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {addonsList.map(addon => (
+                  <label key={addon.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: selectedAddons.includes(addon.id) ? 'rgba(59,130,246,.1)' : 'rgba(255,255,255,.04)', border: '1px solid ' + (selectedAddons.includes(addon.id) ? 'rgba(59,130,246,.4)' : 'var(--border)'), borderRadius: '10px', cursor: 'pointer', transition: 'all .2s' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input type="checkbox" checked={selectedAddons.includes(addon.id)} onChange={() => toggleAddon(addon.id)} style={{ width: '18px', height: '18px', accentColor: '#3b82f6' }} />
+                      <span style={{ fontSize: '.88rem', fontWeight: 600, color: selectedAddons.includes(addon.id) ? '#60a5fa' : 'var(--text)' }}>{addon.label}</span>
+                    </div>
+                    <span style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>+ R$ {addon.price},00</span>
+                  </label>
+                ))}
+              </div>
+              {!isMotoSel && selectedAddons.length === 3 && (
+                <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '8px', fontSize: '.75rem', color: '#34d399', fontWeight: 600 }}>
+                  🎉 Desconto Combo VIP aplicado! (-R$ 10,00)
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -530,7 +582,7 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
               {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', borderRadius: '8px', padding: '10px 14px', color: '#f87171', fontSize: '.8rem' }}>⚠️ {erro}</div>}
 
               <button className="btn btn-primary btn-full btn-lg" onClick={submit} disabled={loading} id="form-submit">
-                {loading ? <><div className="spinner" /> Agendando...</> : '✅ Confirmar Agendamento'}
+                {loading ? <><div className="spinner" /> Agendando...</> : `✅ Confirmar (R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`}
               </button>
             </div>
             <button onClick={back} style={{ marginTop: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.82rem', fontFamily: 'inherit' }}>← Voltar</button>
