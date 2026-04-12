@@ -175,10 +175,10 @@ function ServicesSection({ services, loading, onAgendarClick }) {
   let filtrados = [];
   if (!loading && veiculoSel) {
     if (isMoto) {
-      filtrados = services.filter(s => {
-        const catS = (s.categoria || '').toLowerCase();
-        return catS === 'moto' || catS === 'motos';
-      });
+      filtrados = [
+        { id: 'simples_moto', nome: 'Lavagem Simples Moto', descricao: 'Lavagem externa com shampoo e secagem.', preco: 0, duracao_minutos: 40, icone: '🏍️' },
+        { id: 'detalhada_moto', nome: 'Lavagem Detalhada Premium', descricao: 'Limpeza minuciosa com pincéis de detalhamento (motor, rodas e relação). Uso exclusivo de produtos Vonixx, descontaminação e proteção de plásticos.', preco: 0, duracao_minutos: 120, icone: '✨' }
+      ];
     } else {
       // Sobrescrevemos os serviços de Carro fixando os dois pedidos e mantendo a compatibilidade matemática do painel
       filtrados = [
@@ -238,8 +238,11 @@ function ServicesSection({ services, loading, onAgendarClick }) {
               const handleItemClick = (e) => {
                 e.stopPropagation();
                 if (isDetalhada) {
+                  const msgZap = isMoto 
+                    ? 'Olá Felipe! Gostaria de fazer um orçamento para a Lavagem Detalhada Premium na minha moto.'
+                    : 'Olá Felipe! Gostaria de fazer um orçamento para a Lavagem Detalhada com retirada de bancos para o meu veículo.';
                   // ATENÇÃO: Lembre-se de trocar o 'DD' abaixo pelo DDD da sua região!
-                  window.open('https://wa.me/55DD99985457391?text=Olá Felipe! Gostaria de fazer um orçamento para a Lavagem Detalhada com retirada de bancos para o meu veículo.', '_blank');
+                  window.open(`https://wa.me/55DD99985457391?text=${msgZap}`, '_blank');
                 } else {
                   onAgendarClick(veiculoSel, s);
                 }
@@ -249,6 +252,13 @@ function ServicesSection({ services, loading, onAgendarClick }) {
                 <div key={s.id} className="glass" onClick={handleItemClick}
                   style={{ padding: '28px', cursor: 'pointer', animation: 'fadeInUp 0.45s ' + (i * 0.07) + 's ease both', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at top right, ' + (i % 3 === 0 ? 'rgba(59,130,246,.09)' : i % 3 === 1 ? 'rgba(139,92,246,.09)' : 'rgba(16,185,129,.07)') + ', transparent 70%)' }} />
+                  
+                  {isDetalhada && (
+                    <div style={{ position: 'absolute', top: '24px', right: '24px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', fontSize: '.65rem', fontWeight: 800, padding: '4px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '.05em', boxShadow: '0 4px 12px rgba(245,158,11,.3)', zIndex: 2 }}>
+                      ⭐ Recomendado
+                    </div>
+                  )}
+
                   <div style={{ width: '56px', height: '56px', fontSize: '1.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', flexShrink: 0 }}>
                     {s.icone || '🔧'}
                   </div>
@@ -701,6 +711,9 @@ export default function LandingPage() {
       <Footer />
       {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
       {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
+      <div className="text-center text-sm text-slate-400 mt-16 pb-6">
+        Desenvolvido por Felipe Fernandes
+      </div>
     </div>
   )
 }
