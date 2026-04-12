@@ -625,10 +625,6 @@ export default function ColaboradorDashboard() {
                   }, 0) * taxaComissao;
 
                   return (
-                    <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15))', border: '1px solid rgba(59,130,246,.3)', borderRadius: '20px', padding: '32px', textAlign: 'center', marginBottom: '24px' }}>
-                       <p style={{ fontSize: '.9rem', color: '#94a3b8', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '.05em' }}>Comissão Atual (35%)</p>
-                       <h2 style={{ fontSize: '3rem', fontWeight: 900, margin: 0, color: '#60a5fa', textShadow: '0 4px 20px rgba(59,130,246,.4)' }}>{fmt(comissaoCalculada)}</h2>
-                    </div>
                     <>
                       <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15))', border: '1px solid rgba(59,130,246,.3)', borderRadius: '20px', padding: '32px', textAlign: 'center', marginBottom: '24px' }}>
                          <p style={{ fontSize: '.9rem', color: '#94a3b8', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '.05em' }}>Comissão Atual (35%)</p>

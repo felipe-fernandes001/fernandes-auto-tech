@@ -80,7 +80,7 @@ const veiculosPremium = [
 ];
 
 // ── Navbar ──────────────────────────────────────────────────
-function Navbar({ onAgendarClick }) {
+function Navbar({ onAgendarClick, onTrackClick }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20)
@@ -95,6 +95,9 @@ function Navbar({ onAgendarClick }) {
       </div>
       <div className="navbar-links">
         <a href="#servicos" className="btn btn-ghost">Serviços</a>
+        <button className="btn btn-ghost" onClick={onTrackClick} style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+          Acompanhar Serviço
+        </button>
         <button className="btn btn-primary" onClick={() => onAgendarClick()} id="navbar-agendar-btn">
           Agendar Agora
         </button>
@@ -104,7 +107,7 @@ function Navbar({ onAgendarClick }) {
 }
 
 // ── Hero Section ─────────────────────────────────────────────
-function HeroSection({ onAgendarClick }) {
+function HeroSection({ onAgendarClick, onTrackClick }) {
   return (
     <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden', paddingTop: '64px' }}>
       <div className="hero-bg">
@@ -128,6 +131,9 @@ function HeroSection({ onAgendarClick }) {
               🗓️ Agendar Agora
             </button>
             <a href="#servicos" className="btn btn-secondary btn-lg" id="hero-servicos-btn">Ver Serviços</a>
+            <button className="btn btn-ghost btn-lg" onClick={onTrackClick} style={{ color: 'var(--text-muted)' }}>
+              🔍 Acompanhar Serviço
+            </button>
           </div>
         </div>
       </div>
@@ -330,6 +336,13 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const minDateStr = minDate.toISOString().slice(0, 10)
   const horas = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30']
 
+  // Lógica de Capacidade Estrita de Pátio
+  const countMorning = ocupados.filter(h => parseInt(h.split(':')[0]) < 13).length;
+  const countAfternoon = ocupados.filter(h => parseInt(h.split(':')[0]) >= 13).length;
+  const limit = isMotoSel ? 3 : 5;
+  const morningFull = countMorning >= limit;
+  const afternoonFull = countAfternoon >= limit;
+
   const submit = async () => {
     if (!nome.trim() || !celular.trim()) { setErro('Nome e celular são obrigatórios.'); return }
     if (!data || !hora) { setErro('Selecione data e horário.'); return }
@@ -392,7 +405,9 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
                   <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Horário *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                     {horas.map(h => {
-                      const disabled = ocupados.includes(h);
+                      const isMorning = parseInt(h.split(':')[0]) < 13;
+                      const shiftFull = isMorning ? morningFull : afternoonFull;
+                      const disabled = ocupados.includes(h) || shiftFull;
                       return (
                         <button key={h} onClick={() => !disabled && setHora(h)} disabled={disabled}
                           style={{ padding: '10px 4px', borderRadius: '8px', border: hora === h ? '1.5px solid rgba(59,130,246,.6)' : '1px solid var(--border)', background: disabled ? 'rgba(255,255,255,.02)' : hora === h ? 'rgba(59,130,246,.15)' : 'rgba(255,255,255,.04)', color: disabled ? 'var(--text-faint)' : hora === h ? '#60a5fa' : 'var(--text-muted)', fontWeight: hora === h ? 700 : 400, fontSize: '.8rem', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
@@ -430,6 +445,22 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
               </div>
             </div>
 
+            {/* Retorno Simplificado da Sujeira Extrema */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'rgba(255,255,255,.04)', border: '1px solid var(--border)', padding: '12px 16px', borderRadius: '10px' }}>
+                <input type="checkbox" checked={sujeira} onChange={e => setSujeira(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#f59e0b' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '.88rem', fontWeight: 600, color: sujeira ? '#fbbf24' : 'var(--text)' }}>🦴 Sujeira Extrema</span>
+                  <span style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>Barro pesado, pelos de animais, terra, etc.</span>
+                </div>
+              </label>
+              {sujeira && (
+                <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.3)', borderRadius: '8px', color: '#fbbf24', fontSize: '.8rem', lineHeight: 1.4 }}>
+                  ⚠️ Veículos com sujeira extrema sofrerão reajuste no valor após avaliação no local da equipe.
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
@@ -465,6 +496,38 @@ function SuccessModal({ data, onClose }) {
           📱 Confirmar no WhatsApp
         </button>
         <button className="btn btn-ghost btn-full" onClick={onClose} style={{ color: 'var(--text-faint)' }}>Fechar</button>
+      </div>
+    </div>
+  )
+}
+
+// ── Modal de Acompanhamento (Track Serviço via WhatsApp) ─────
+function TrackModal({ onClose }) {
+  const [numero, setNumero] = useState('')
+
+  const submit = (e) => {
+    e.preventDefault()
+    if (!numero.trim()) return
+    const msg = encodeURIComponent(`Olá! Gostaria de saber o status de andamento do meu veículo. Meu número cadastrado é: ${numero}`)
+    window.open(`https://wa.me/5599981763335?text=${msg}`, '_blank')
+    onClose()
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,14,26,.85)', backdropFilter: 'blur(6px)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="glass" style={{ borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '440px', animation: 'fadeInUp .2s ease' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1.1rem', margin: 0 }}>🔍 Acompanhar Serviço</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+        </div>
+        <p style={{ fontSize: '.85rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>Informe o seu WhatsApp cadastrado no agendamento para consultar o status direto com a nossa equipe.</p>
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Seu WhatsApp/Celular *</label>
+            <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="(11) 99999-9999" required style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <button type="submit" className="btn btn-primary btn-full">Consultar no WhatsApp →</button>
+        </form>
       </div>
     </div>
   )
@@ -545,6 +608,7 @@ export default function LandingPage() {
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showTrackModal, setShowTrackModal] = useState(false)
   const [modalData, setModalData] = useState(null)
   const [successData, setSuccessData] = useState(null)
 
@@ -591,12 +655,13 @@ export default function LandingPage() {
         }
       `}</style>
       <div style={{ minHeight: '100vh', position: 'relative' }}>
-        <Navbar onAgendarClick={handleAgendarClick} />
-        <HeroSection onAgendarClick={handleAgendarClick} />
+        <Navbar onAgendarClick={handleAgendarClick} onTrackClick={() => setShowTrackModal(true)} />
+        <HeroSection onAgendarClick={handleAgendarClick} onTrackClick={() => setShowTrackModal(true)} />
         <ServicesSection services={services} loading={loadingServices} onAgendarClick={handleAgendarClick} />
         <TestimonialsSection />
         <Footer />
         {showModal && modalData && <BookingModal veiculo={modalData.veiculo} servico={modalData.servico} onClose={() => setShowModal(false)} onSuccess={handleSuccess} />}
+        {showTrackModal && <TrackModal onClose={() => setShowTrackModal(false)} />}
         {successData && <SuccessModal data={successData} onClose={() => setSuccessData(null)} />}
         <div className="text-center text-sm text-slate-400 pb-6">
           Desenvolvido por Felipe Fernandes
