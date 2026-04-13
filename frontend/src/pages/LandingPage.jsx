@@ -304,6 +304,7 @@ function StepDot({ num, label, active, done }) {
 function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const [step, setStep] = useState(1)
   const [data, setData] = useState('')
+  const [turno, setTurno] = useState('')
   const [hora, setHora] = useState('')
   const [nome, setNome] = useState('')
   const [celular, setCelular] = useState('')
@@ -342,25 +343,28 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
 
   const minDate = new Date(); minDate.setMinutes(minDate.getMinutes() + 30)
   const minDateStr = minDate.toISOString().slice(0, 10)
-  const horas = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30']
 
-  // Lógica de Capacidade Estrita de Pátio
+  // Lógica de Capacidade de Pátio / Turno
+  const limit = isMotoSel ? 3 : 5;
   const countMorning = ocupados.filter(h => parseInt(h.split(':')[0]) < 13).length;
   const countAfternoon = ocupados.filter(h => parseInt(h.split(':')[0]) >= 13).length;
-  const limit = isMotoSel ? 3 : 5;
-  const morningFull = countMorning >= limit;
-  const afternoonFull = countAfternoon >= limit;
+  const isManhaLotada = ocupados.length >= 5 || countMorning >= limit;
+  const isTardeLotada = countAfternoon >= limit;
+
+  const horasManha = ['08:00', '08:30', '09:00', '09:30', '10:00'];
+  const horasTarde = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00'];
 
   const submit = async () => {
     if (!nome.trim() || !celular.trim()) { setErro('Nome e celular são obrigatórios.'); return }
-    if (!data || !hora) { setErro('Selecione data e horário.'); return }
+    if (!data || !turno || !hora) { setErro('Selecione data, turno e horário de chegada.'); return }
     setLoading(true); setErro('')
     try {
       const data_hora = data + 'T' + hora + ':00'
       const addonsArr = selectedAddons.map(id => addonsList.find(a => a.id === id).label);
       const addonsNomes = addonsArr.join(', ');
       const obsAddons = addonsNomes ? `[Acréscimos: ${addonsNomes}] ` : '';
-      const obsCompleta = obsAddons + (sujeira ? '[SUJEIRA EXTREMA] ' : '') + (buscarVeiculo ? '[BUSCAR VEÍCULO] ' : '') + obs;
+      const obsTurno = `[Turno de Entrega: ${turno === 'manha' ? 'Manhã (até 12:30)' : 'Tarde (até 17:30)'}] `;
+      const obsCompleta = obsTurno + obsAddons + (sujeira ? '[SUJEIRA EXTREMA] ' : '') + (buscarVeiculo ? '[BUSCAR VEÍCULO] ' : '') + obs;
 
       const res = await fetch(API + '/agendamentos', {
         method: 'POST',
@@ -405,17 +409,42 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Data *</label>
-                <input type="date" min={minDateStr} value={data} onChange={e => { setData(e.target.value); setHora('') }}
+                <input type="date" min={minDateStr} value={data} onChange={e => { setData(e.target.value); setTurno(''); setHora(''); }}
                   style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)' }} />
               </div>
               {data && (
-                <div>
-                  <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Horário *</label>
+                <div style={{ marginBottom: '8px', animation: 'fadeIn .3s ease' }}>
+                  <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Turno de Entrega *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <button 
+                      onClick={() => { setTurno('manha'); setHora(''); }} 
+                      disabled={isManhaLotada}
+                      style={{ padding: '16px 12px', borderRadius: '12px', border: turno === 'manha' ? '1.5px solid rgba(59,130,246,.6)' : '1px solid var(--border)', background: isManhaLotada ? 'rgba(255,255,255,.02)' : turno === 'manha' ? 'rgba(59,130,246,.15)' : 'rgba(255,255,255,.04)', color: isManhaLotada ? 'var(--text-faint)' : turno === 'manha' ? '#60a5fa' : 'var(--text-muted)', cursor: isManhaLotada ? 'not-allowed' : 'pointer', transition: 'all .2s' }}
+                    >
+                      <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>☀️</div>
+                      <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '2px' }}>Manhã</div>
+                      <div style={{ fontSize: '.7rem', opacity: 0.8 }}>Pronto até as 12:30</div>
+                      {isManhaLotada && <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Lotação Esgotada</div>}
+                    </button>
+                    <button 
+                      onClick={() => { setTurno('tarde'); setHora(''); }} 
+                      disabled={isTardeLotada}
+                      style={{ padding: '16px 12px', borderRadius: '12px', border: turno === 'tarde' ? '1.5px solid rgba(59,130,246,.6)' : '1px solid var(--border)', background: isTardeLotada ? 'rgba(255,255,255,.02)' : turno === 'tarde' ? 'rgba(59,130,246,.15)' : 'rgba(255,255,255,.04)', color: isTardeLotada ? 'var(--text-faint)' : turno === 'tarde' ? '#60a5fa' : 'var(--text-muted)', cursor: isTardeLotada ? 'not-allowed' : 'pointer', transition: 'all .2s' }}
+                    >
+                      <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>🌤️</div>
+                      <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '2px' }}>Tarde</div>
+                      <div style={{ fontSize: '.7rem', opacity: 0.8 }}>Pronto até as 17:30</div>
+                      {isTardeLotada && <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Lotação Esgotada</div>}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {data && turno && (
+                <div style={{ animation: 'fadeIn .2s ease' }}>
+                  <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Horário de Chegada (Deixar o veículo) *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                    {horas.map(h => {
-                      const isMorning = parseInt(h.split(':')[0]) < 13;
-                      const shiftFull = isMorning ? morningFull : afternoonFull;
-                      const disabled = ocupados.includes(h) || shiftFull;
+                    {(turno === 'manha' ? horasManha : horasTarde).map(h => {
+                      const disabled = ocupados.includes(h);
                       return (
                         <button key={h} onClick={() => !disabled && setHora(h)} disabled={disabled}
                           style={{ padding: '10px 4px', borderRadius: '8px', border: hora === h ? '1.5px solid rgba(59,130,246,.6)' : '1px solid var(--border)', background: disabled ? 'rgba(255,255,255,.02)' : hora === h ? 'rgba(59,130,246,.15)' : 'rgba(255,255,255,.04)', color: disabled ? 'var(--text-faint)' : hora === h ? '#60a5fa' : 'var(--text-muted)', fontWeight: hora === h ? 700 : 400, fontSize: '.8rem', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
@@ -426,7 +455,7 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
                   </div>
                 </div>
               )}
-              {data && hora && (
+              {data && turno && hora && (
                 <button className="btn btn-primary btn-full" onClick={() => setStep(2)} style={{ marginTop: '8px' }}>Próximo Passo →</button>
               )}
             </div>
@@ -465,6 +494,22 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
               {sujeira && (
                 <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.3)', borderRadius: '8px', color: '#fbbf24', fontSize: '.8rem', lineHeight: 1.4 }}>
                   ⚠️ Veículos com sujeira extrema sofrerão reajuste no valor após avaliação no local da equipe.
+                </div>
+              )}
+            </div>
+
+            {/* Opção de Buscar Veículo */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'rgba(255,255,255,.04)', border: '1px solid var(--border)', padding: '12px 16px', borderRadius: '10px' }}>
+                <input type="checkbox" checked={buscarVeiculo} onChange={e => setBuscarVeiculo(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#3b82f6' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '.88rem', fontWeight: 600, color: buscarVeiculo ? '#60a5fa' : 'var(--text)' }}>🚗 Buscar Veículo</span>
+                  <span style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>Deseja que a gente busque o veículo em sua casa/trabalho?</span>
+                </div>
+              </label>
+              {buscarVeiculo && (
+                <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.3)', borderRadius: '8px', color: '#60a5fa', fontSize: '.8rem', lineHeight: 1.4 }}>
+                  ⚠️ <strong>Importante:</strong> O horário agendado é o início do serviço em nossa loja. Entraremos em contato para buscar seu veículo cerca de 30 a 40 minutos ANTES do horário escolhido.
                 </div>
               )}
             </div>
