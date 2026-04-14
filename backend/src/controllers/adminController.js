@@ -296,4 +296,31 @@ const setConfiguracoes = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, concluirAgendamento, cancelarAgendamento, atualizarValor, criarManual, getConfiguracoes, setConfiguracoes };
+/**
+ * GET /api/admin/veiculos/busca-placa?placa=XYZ
+ * Busca cliente e veículo pela placa (JOIN com clientes).
+ */
+const buscarPorPlaca = async (req, res) => {
+  try {
+    const { placa } = req.query;
+    if (!placa) return res.status(400).json({ success: false, message: 'Placa não informada.' });
+    
+    const result = await db.query(
+      `SELECT v.id as veiculo_id, v.modelo, v.placa, c.id as cliente_id, c.nome, c.celular 
+       FROM veiculos v 
+       JOIN clientes c ON c.id = v.cliente_id 
+       WHERE v.placa ILIKE $1 LIMIT 1`,
+      [`%${placa}%`]
+    );
+    if (result.rows.length > 0) {
+      res.json({ success: true, data: result.rows[0] });
+    } else {
+      res.json({ success: false, message: 'Veículo não encontrado.' });
+    }
+  } catch (err) {
+    console.error('Erro na busca por placa:', err);
+    res.status(500).json({ success: false, message: 'Erro ao buscar placa.' });
+  }
+};
+
+module.exports = { getDashboard, concluirAgendamento, cancelarAgendamento, atualizarValor, criarManual, getConfiguracoes, setConfiguracoes, buscarPorPlaca };

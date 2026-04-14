@@ -385,7 +385,7 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
       })
       const result = await res.json()
       if (result.success) { 
-        onSuccess({ ...result.data, buscarVeiculo, modeloFormatado: veiculo.modelo }) 
+        onSuccess({ ...result.data, buscarVeiculo, modeloFormatado: veiculo.modelo, nome }) 
       }
       else { setErro(result.message || 'Erro ao agendar.') }
     } catch { setErro('Erro de conexão com o servidor.') }
@@ -550,13 +550,22 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
 }
 
 function SuccessModal({ data, onClose }) {
+  // Define o link e a mensagem dependendo da opção de buscar o veículo
+  let linkZap = data.whatsapp_link;
+  if (data.buscarVeiculo) {
+    const msg = encodeURIComponent(`Olá! Acabei de realizar um agendamento no site e solicitei a opção de BUSCAR O VEÍCULO. Meu nome é ${data.nome}.`);
+    linkZap = `https://wa.me/5599981763335?text=${msg}`;
+  }
+
   return (
     <div className="modal-overlay">
       <div className="modal glass text-center" style={{ maxWidth: '480px' }}>
         <div style={{ fontSize: '4rem', marginBottom: '16px' }}>✅</div>
         <h3 style={{ fontSize: '1.4rem', marginBottom: '12px' }}>Agendamento Realizado!</h3>
-        <p className="text-muted" style={{ marginBottom: '24px' }}>Salvo com sucesso. Clique para confirmar via WhatsApp.</p>
-        <button className="btn btn-primary btn-full btn-lg" onClick={() => window.open(data.whatsapp_link, '_blank')} style={{ marginBottom: '12px' }}>
+        <p className="text-muted" style={{ marginBottom: '24px', lineHeight: 1.5 }}>
+          {data.buscarVeiculo ? 'Caso o WhatsApp não tenha aberto automaticamente, clique no botão abaixo para nos avisar que devemos buscar o veículo.' : 'Salvo com sucesso. Clique para confirmar via WhatsApp.'}
+        </p>
+        <button className="btn btn-primary btn-full btn-lg" onClick={() => window.open(linkZap, '_blank')} style={{ marginBottom: '12px' }}>
           📱 Confirmar no WhatsApp
         </button>
         <button className="btn btn-ghost btn-full" onClick={onClose} style={{ color: 'var(--text-faint)' }}>Fechar</button>
@@ -568,30 +577,121 @@ function SuccessModal({ data, onClose }) {
 // ── Modal de Acompanhamento (Track Serviço via WhatsApp) ─────
 function TrackModal({ onClose }) {
   const [numero, setNumero] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [agendamentos, setAgendamentos] = useState(null)
+  const [erro, setErro] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     if (!numero.trim()) return
-    const msg = encodeURIComponent(`Olá! Gostaria de saber o status de andamento do meu veículo. Meu número cadastrado é: ${numero}`)
-    window.open(`https://wa.me/5599981763335?text=${msg}`, '_blank')
-    onClose()
+    setLoading(true); setErro(''); setAgendamentos(null);
+    try {
+      const res = await fetch(`${API}/agendamentos/telefone?celular=${encodeURIComponent(numero)}`)
+      const data = await res.json()
+      if (data.success) {
+        if (data.data.length === 0) setErro('Nenhum agendamento encontrado para este número.')
+        else setAgendamentos(data.data)
+      } else {
+        setErro(data.message || 'Erro ao buscar.')
+      }
+    } catch (err) {
+      setErro('Erro de conexão ao buscar agendamentos.')
+    }
+    setLoading(false)
+  }
+
+  const handleCancelar = async (id) => {
+    if (!window.confirm('Tem certeza que deseja cancelar? Essa ação libera a vaga.')) return;
+    try {
+      const res = await fetch(`${API}/agendamentos/cancelar-cliente`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, celular: numero })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAgendamentos(prev => prev.map(ag => ag.id === id ? { ...ag, status: 'cancelado' } : ag));
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Erro de conexão ao cancelar.');
+    }
+  }
+
+  const getStatusBadge = (status) => {
+    if (['recebido', 'agendado', 'pendente'].includes(status)) {
+      return <span style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(16,185,129,.15)', color: '#10b981', fontSize: '.75rem', fontWeight: 700, border: '1px solid rgba(16,185,129,.3)' }}>Agendado</span>
+    }
+    if (['em_lavagem', 'detalhamento'].includes(status)) {
+      return <span style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(245,158,11,.15)', color: '#fbbf24', fontSize: '.75rem', fontWeight: 700, border: '1px solid rgba(245,158,11,.3)' }}>Em Lavagem</span>
+    }
+    if (['finalizado', 'pronto_retirada'].includes(status)) {
+      return <span style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(59,130,246,.15)', color: '#60a5fa', fontSize: '.75rem', fontWeight: 700, border: '1px solid rgba(59,130,246,.3)' }}>Finalizado</span>
+    }
+    if (status === 'cancelado') {
+      return <span style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(239,68,68,.15)', color: '#ef4444', fontSize: '.75rem', fontWeight: 700, border: '1px solid rgba(239,68,68,.3)' }}>Cancelado</span>
+    }
+    return <span style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(255,255,255,.1)', color: 'var(--text-muted)', fontSize: '.75rem', fontWeight: 700 }}>{status}</span>
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,14,26,.85)', backdropFilter: 'blur(6px)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="glass" style={{ borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '440px', animation: 'fadeInUp .2s ease' }}>
+      <div className="glass" style={{ borderRadius: '20px', padding: '28px', width: '100%', maxWidth: agendamentos ? '540px' : '440px', animation: 'fadeInUp .2s ease', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1.1rem', margin: 0 }}>🔍 Acompanhar Serviço</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
         </div>
-        <p style={{ fontSize: '.85rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>Informe o seu WhatsApp cadastrado no agendamento para consultar o status direto com a nossa equipe.</p>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Seu WhatsApp/Celular *</label>
-            <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="(11) 99999-9999" required style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+
+        {!agendamentos ? (
+          <>
+            <p style={{ fontSize: '.85rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>Informe o seu WhatsApp cadastrado no agendamento para consultar o status direto na plataforma.</p>
+            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Seu WhatsApp/Celular *</label>
+                <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="(11) 99999-9999" required style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'rgba(255,255,255,.06)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              {erro && <div style={{ color: '#ef4444', fontSize: '.8rem', background: 'rgba(239,68,68,.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(239,68,68,.3)' }}>⚠️ {erro}</div>}
+              <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+                {loading ? 'Buscando...' : 'Consultar Agendamentos →'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Resultados para: <strong>{numero}</strong></span>
+              <button onClick={() => { setAgendamentos(null); setErro(''); }} style={{ background: 'rgba(255,255,255,.05)', border: '1px solid var(--border)', color: '#60a5fa', fontSize: '.8rem', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer' }}>Nova Busca</button>
+            </div>
+
+            {agendamentos.map(ag => (
+              <div key={ag.id} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text)', marginBottom: '4px' }}>{ag.veiculo_modelo}</div>
+                    <div style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{ag.servico_nome}</div>
+                    <div style={{ fontSize: '.75rem', color: 'var(--text-faint)', marginTop: '6px' }}>📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {getStatusBadge(ag.status)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <a href={`/status/${ag.token_cliente}`} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ flex: 1, padding: '10px', fontSize: '.85rem', textAlign: 'center', textDecoration: 'none' }}>
+                    Ver Detalhes
+                  </a>
+                  
+                  {['recebido', 'agendado', 'pendente'].includes(ag.status) && (
+                    <button onClick={() => handleCancelar(ag.id)} className="btn btn-ghost" style={{ flex: 1, padding: '10px', fontSize: '.85rem', color: '#ef4444', border: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.05)', textAlign: 'center', cursor: 'pointer' }}>
+                      ❌ Cancelar Agendamento
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <button type="submit" className="btn btn-primary btn-full">Consultar no WhatsApp →</button>
-        </form>
+        )}
       </div>
     </div>
   )
@@ -698,7 +798,8 @@ export default function LandingPage() {
     setShowModal(false); 
     setSuccessData(data);
     if (data.buscarVeiculo) {
-      setTimeout(() => window.open(data.whatsapp_link, '_blank'), 300)
+      const msg = encodeURIComponent(`Olá! Acabei de realizar um agendamento no site e solicitei a opção de BUSCAR O VEÍCULO. Meu nome é ${data.nome}.`);
+      setTimeout(() => window.open(`https://wa.me/5599981763335?text=${msg}`, '_blank'), 300)
     }
   }
 
