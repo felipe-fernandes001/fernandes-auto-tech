@@ -348,8 +348,11 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
   const limit = isMotoSel ? 3 : 5;
   const countMorning = ocupados.filter(h => parseInt(h.split(':')[0]) < 13).length;
   const countAfternoon = ocupados.filter(h => parseInt(h.split(':')[0]) >= 13).length;
-  const isManhaLotada = ocupados.length >= 5 || countMorning >= limit;
-  const isTardeLotada = countAfternoon >= limit;
+  
+  const vagasManha = Math.max(0, limit - countMorning);
+  const vagasTarde = Math.max(0, limit - countAfternoon);
+  const isManhaLotada = vagasManha === 0;
+  const isTardeLotada = vagasTarde === 0;
 
   const horasManha = ['08:00', '08:30', '09:00', '09:30', '10:00'];
   const horasTarde = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00'];
@@ -424,7 +427,11 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
                       <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>☀️</div>
                       <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '2px' }}>Manhã</div>
                       <div style={{ fontSize: '.7rem', opacity: 0.8 }}>Pronto até as 12:30</div>
-                      {isManhaLotada && <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Lotação Esgotada</div>}
+                      {isManhaLotada ? (
+                        <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Esgotado</div>
+                      ) : (
+                        <div style={{ fontSize: '.65rem', color: '#10b981', marginTop: '6px', fontWeight: 700, background: 'rgba(16,185,129,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Restam {vagasManha} vaga{vagasManha !== 1 ? 's' : ''}</div>
+                      )}
                     </button>
                     <button 
                       onClick={() => { setTurno('tarde'); setHora(''); }} 
@@ -434,7 +441,11 @@ function BookingModal({ veiculo, servico, onClose, onSuccess }) {
                       <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>🌤️</div>
                       <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '2px' }}>Tarde</div>
                       <div style={{ fontSize: '.7rem', opacity: 0.8 }}>Pronto até as 17:30</div>
-                      {isTardeLotada && <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Lotação Esgotada</div>}
+                      {isTardeLotada ? (
+                        <div style={{ fontSize: '.65rem', color: '#ef4444', marginTop: '6px', fontWeight: 700, background: 'rgba(239,68,68,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Esgotado</div>
+                      ) : (
+                        <div style={{ fontSize: '.65rem', color: '#10b981', marginTop: '6px', fontWeight: 700, background: 'rgba(16,185,129,.1)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Restam {vagasTarde} vaga{vagasTarde !== 1 ? 's' : ''}</div>
+                      )}
                     </button>
                   </div>
                 </div>

@@ -32,6 +32,17 @@ const criar = async (req, res) => {
       });
     }
 
+    // Regra de Negócios: Bloqueio de agendamentos aos domingos
+    const [datePart] = data_hora.split('T');
+    const [ano, mes, dia] = datePart.split('-');
+    const dateObj = new Date(ano, mes - 1, dia);
+    if (dateObj.getDay() === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Não temos expediente aos domingos. Por favor, escolha outra data.',
+      });
+    }
+
     // 1. Busca ou cria cliente
     let clienteResult = await client.query(
       'SELECT id FROM clientes WHERE celular = $1',
@@ -40,6 +51,18 @@ const criar = async (req, res) => {
     let clienteId;
     if (clienteResult.rows.length > 0) {
       clienteId = clienteResult.rows[0].id;
+
+      // Regra de Negócios: Limitar a 1 agendamento por dia por cliente
+      const agendamentoExistente = await client.query(
+        `SELECT id FROM agendamentos 
+         WHERE cliente_id = $1 AND DATE(data_hora) = DATE($2) AND status != 'cancelado'`,
+        [clienteId, data_hora]
+      );
+      if (agendamentoExistente.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, message: 'Você já possui um agendamento ativo para esta data. Limite de 1 reserva por dia.' });
+      }
+
       // Atualiza nome se mudou
       await client.query('UPDATE clientes SET nome = $1 WHERE id = $2', [nome, clienteId]);
     } else {
