@@ -209,10 +209,15 @@ const criarManual = async (req, res) => {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
-    const { nome, celular, modelo_carro, servico_id, data_hora, observacoes, sujeira_extrema } = req.body;
+    let { nome, celular, modelo_carro, servico_id, data_hora, observacoes, sujeira_extrema, placa, valor_cobrado } = req.body;
 
-    if (!nome || !celular || !modelo_carro || !servico_id || !data_hora) {
-      return res.status(400).json({ success: false, message: 'Campos obrigatórios: nome, celular, modelo, serviço, data.' });
+    // Auto-preenchimento para o Check-in Relâmpago (Modo Pátio)
+    nome = nome || 'Cliente Avulso';
+    celular = celular || '00000000000';
+    data_hora = data_hora || new Date().toISOString();
+
+    if (!modelo_carro || !servico_id) {
+      return res.status(400).json({ success: false, message: 'Campos obrigatórios: modelo, serviço.' });
     }
 
     // Upsert cliente
@@ -224,16 +229,17 @@ const criarManual = async (req, res) => {
     );
     const cliente_id = clienteRes.rows[0].id;
 
-    // Upsert veículo
+    // Upsert veículo (Agora vinculando a Placa)
     const veiculoRes = await client.query(
-      `INSERT INTO veiculos (cliente_id, modelo) VALUES ($1, $2)
+      `INSERT INTO veiculos (cliente_id, modelo, placa) VALUES ($1, $2, $3)
        ON CONFLICT DO NOTHING RETURNING id`,
-      [cliente_id, modelo_carro.trim()]
+      [cliente_id, modelo_carro.trim(), placa ? placa.trim() : null]
     );
     let veiculo_id;
     if (veiculoRes.rows.length > 0) {
       veiculo_id = veiculoRes.rows[0].id;
     } else {
+      // Fallback: se houver conflito (ex: mesmo cliente/modelo s/ placa), busca o que já existe
       const v = await client.query(
         'SELECT id FROM veiculos WHERE cliente_id = $1 AND modelo = $2 LIMIT 1',
         [cliente_id, modelo_carro.trim()]
@@ -248,11 +254,17 @@ const criarManual = async (req, res) => {
     // Gerar token
     const token = require('crypto').randomBytes(16).toString('hex');
 
-    // Criar agendamento
+    // Criar agendamento (Status vai direto para em_lavagem e assume valor manual)
     const agRes = await client.query(
-      `INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_hora, status, observacoes, token_cliente)
-       VALUES ($1, $2, $3, $4, 'recebido', $5, $6) RETURNING id, token_cliente`,
-      [cliente_id, veiculo_id, parseInt(servico_id), data_hora, obsCompleta.trim(), token]
+      `INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_hora, status, observacoes, token_cliente, valor_cobrado)
+       VALUES ($1, $2, $3, $4, 'em_lavagem', $5, $6, $7) RETURNING id, token_cliente`,
+      [cliente_id, veiculo_id, parseInt(servico_id), data_hora, obsCompleta.trim() || null, token, valor_cobrado ? parseFloat(valor_cobrado) : null]
+    );
+
+    // Salva o pulo de status no histórico
+    await client.query(
+      `INSERT INTO historico_status (agendamento_id, status_novo) VALUES ($1, 'em_lavagem')`,
+      [agRes.rows[0].id]
     );
 
     await client.query('COMMIT');
